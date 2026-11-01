@@ -43,7 +43,7 @@ make-app.sh builds the Zig core and the SwiftUI app into app/DevCacheClean.app. 
 ## What is safe to delete
 
 - Safe entries are regenerated on demand and cost only time or bandwidth: for example npm, Yarn, pnpm, Bun, pip, uv, Go, Cargo and Gradle caches, Homebrew downloads, CocoaPods, Playwright and Puppeteer browsers, VS Code and Cursor caches and logs, Xcode DerivedData and iOS DeviceSupport, simulator caches, Claude Code shell snapshots, telemetry, analytics cache, debug logs and CLI cache, Codex and opencode logs, and opencode cache.
-- Careful entries lose something you may want back, are never pre-selected, and the confirmation warns when your selection includes them. There are six: Claude Code conversations, Claude Code file checkpoints, Codex CLI sessions, opencode sessions and messages, Xcode Archives (needed to symbolicate crashes or re-submit builds) and Maven's local repository (may hold locally installed artifacts that exist nowhere else).
+- Careful entries lose something you may want back, are never pre-selected, and the confirmation warns when your selection includes them. There are seven: Claude Code conversations, Claude Code file checkpoints, Codex CLI sessions, opencode sessions and messages, the opencode cache (plugin dependencies), Xcode Archives (needed to symbolicate crashes or re-submit builds) and Maven's local repository (may hold locally installed artifacts that exist nowhere else).
 - The System tab's "Select safe" button skips every careful and every history item.
 - Close the tools that use the data before removing it.
 - Project caches (node_modules, target, .venv and so on) can be rebuilt by installing or building the project again.
