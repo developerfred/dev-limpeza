@@ -263,20 +263,35 @@ final class Model: ObservableObject {
         }
     }
 
-    /// Runs git on the projects of the given caches, a few at a time.
+    /// Runs git on the projects of the given caches on a few dedicated threads (not the Swift task pool:
+    /// each check blocks while git runs).
     func checkGit(_ paths: [String], force: Bool = false) async {
         let todo = paths.filter { force || gitInfo[$0] == nil }
-        var start = 0
-        while start < todo.count {
-            let chunk = Array(todo[start..<min(start + 6, todo.count)])
-            start += 6
-            await withTaskGroup(of: (String, GitInfo).self) { group in
-                for p in chunk {
-                    group.addTask { (p, await Task.detached(priority: .utility) { GitCheck.inspect(cachePath: p) }.value) }
+        guard !todo.isEmpty else { return }
+        let results: [String: GitInfo] = await withCheckedContinuation { cont in
+            let lock = NSLock()
+            var next = 0
+            var out: [String: GitInfo] = [:]
+            let workers = min(4, todo.count)
+            let group = DispatchGroup()
+            for _ in 0..<workers {
+                group.enter()
+                let t = Thread {
+                    while true {
+                        lock.lock(); let i = next; next += 1; lock.unlock()
+                        if i >= todo.count { break }
+                        let info = GitCheck.inspect(cachePath: todo[i])
+                        lock.lock(); out[todo[i]] = info; lock.unlock()
+                    }
+                    group.leave()
                 }
-                for await (p, info) in group { gitInfo[p] = info }
+                t.stackSize = 4 << 20
+                t.start()
             }
+            // A plain thread waits for the workers, so no pool thread is ever parked here.
+            Thread { group.wait(); cont.resume(returning: out) }.start()
         }
+        for (p, info) in results { gitInfo[p] = info }
     }
 
     /// Selects the idle caches whose projects show no sign of live work: nothing uncommitted, nothing unpushed,

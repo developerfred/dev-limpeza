@@ -8,10 +8,12 @@ var stage = "start"
 
 setvbuf(stdout, nil, _IOLBF, 0)   // show progress line by line even when piped (CI logs)
 // If anything ever blocks, say where and stop instead of hanging the job.
-DispatchQueue.global().asyncAfter(deadline: .now() + 120) {
+let watchdog = Thread {
+    Thread.sleep(forTimeInterval: 120)   // a dedicated thread: it must not depend on any pool
     print("TIMEOUT after 120 s at stage: \(stage)")
     exit(2)
 }
+watchdog.start()
 
 func check(_ ok: Bool, _ what: String) {
     stage = "after: " + what

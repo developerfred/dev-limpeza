@@ -29,8 +29,23 @@ enum GitCheck {
 
     /// Runs git read-only in `dir`. Repository config can name programs git would run (core.fsmonitor,
     /// hooks), so those are switched off on the command line: scanning a repo must never execute its code.
+    ///
+    /// Output goes to temporary files and the wait is a plain polling loop: no pipe readers and no
+    /// dispatch queues, so many checks can run at once on a machine with few cores without any of them
+    /// waiting for a thread that another one is holding.
     static func run(_ git: String, _ args: [String], in dir: String, timeout: TimeInterval = 20)
         -> (status: Int32, out: String, err: String)? {
+        let tmp = FileManager.default.temporaryDirectory.appendingPathComponent("dcc-git-\(UUID().uuidString)")
+        let outURL = tmp.appendingPathExtension("out"), errURL = tmp.appendingPathExtension("err")
+        guard FileManager.default.createFile(atPath: outURL.path, contents: nil),
+              FileManager.default.createFile(atPath: errURL.path, contents: nil),
+              let outH = try? FileHandle(forWritingTo: outURL), let errH = try? FileHandle(forWritingTo: errURL)
+        else { return nil }
+        defer {
+            try? outH.close(); try? errH.close()
+            try? FileManager.default.removeItem(at: outURL); try? FileManager.default.removeItem(at: errURL)
+        }
+
         let p = Process()
         p.executableURL = URL(fileURLWithPath: git)
         p.arguments = ["-c", "core.fsmonitor=false", "-c", "core.hooksPath=/dev/null", "-C", dir] + args
@@ -41,25 +56,19 @@ enum GitCheck {
         env["GIT_OPTIONAL_LOCKS"] = "0"      // do not rewrite the index while only looking
         env["GIT_TERMINAL_PROMPT"] = "0"
         p.environment = env
-        let out = Pipe(), err = Pipe()
-        p.standardOutput = out
-        p.standardError = err
+        p.standardOutput = outH
+        p.standardError = errH
+        p.standardInput = FileHandle.nullDevice
         do { try p.run() } catch { return nil }
 
-        var timedOut = false
-        let killer = DispatchWorkItem { if p.isRunning { timedOut = true; p.terminate() } }
-        DispatchQueue.global().asyncAfter(deadline: .now() + timeout, execute: killer)
-
-        var errData = Data()
-        let g = DispatchGroup()
-        g.enter()
-        DispatchQueue.global().async { errData = err.fileHandleForReading.readDataToEndOfFile(); g.leave() }
-        let outData = out.fileHandleForReading.readDataToEndOfFile()
-        p.waitUntilExit()
-        g.wait()
-        killer.cancel()
-        if timedOut { return nil }
-        return (p.terminationStatus, String(decoding: outData, as: UTF8.self), String(decoding: errData, as: UTF8.self))
+        let deadline = Date().addingTimeInterval(timeout)
+        while p.isRunning {
+            if Date() > deadline { p.terminate(); p.waitUntilExit(); return nil }
+            usleep(4_000)
+        }
+        let out = (try? Data(contentsOf: outURL)) ?? Data()
+        let err = (try? Data(contentsOf: errURL)) ?? Data()
+        return (p.terminationStatus, String(decoding: out, as: UTF8.self), String(decoding: err, as: UTF8.self))
     }
 
     /// Inspects the project that owns the cache at `cachePath` (its parent folder).
