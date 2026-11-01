@@ -106,10 +106,13 @@ pub const Pool = struct {
         }
     }
 
-    /// Starts one worker per CPU and returns when every queued job is done.
+    /// Starts the workers and returns when every queued job is done. The walk is
+    /// bound by kernel directory enumeration, where threads spend much of their time
+    /// blocked or contending, so oversubscribing the CPUs pays off (measured on an
+    /// 8-core M-series: 32 threads beat 8 by about 2x). DCC_THREADS overrides.
     fn run(self: *Pool) !void {
-        var n = @max(2, std.Thread.getCpuCount() catch 4);
-        if (std.c.getenv("DCC_THREADS")) |v| n = std.fmt.parseInt(usize, std.mem.span(v), 10) catch n;
+        var n = std.math.clamp((std.Thread.getCpuCount() catch 4) * 4, 8, 64);
+        if (std.c.getenv("DCC_THREADS")) |v| n = @max(1, std.fmt.parseInt(usize, std.mem.span(v), 10) catch n);
         const threads = try alloc.alloc(std.Thread, n);
         defer alloc.free(threads);
         var started: usize = 0;

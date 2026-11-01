@@ -62,6 +62,17 @@ fn cmdGlobal(alloc: std.mem.Allocator, out: *std.Io.Writer) !void {
     try out.print("\n{d} locations, {s} total\n", .{ items.len, fmtSize(&sb, total) });
 }
 
+/// Benchmark/verification helper: prints the exact allocated bytes of each path.
+fn cmdSize(out: *std.Io.Writer, paths: []const []const u8) !void {
+    const walker = @import("walker.zig");
+    const alloc = std.heap.c_allocator;
+    const totals = try alloc.alloc(std.atomic.Value(u64), paths.len);
+    for (totals) |*t| t.* = std.atomic.Value(u64).init(0);
+    var pool: walker.Pool = .{};
+    try pool.sizePaths(paths, totals);
+    for (paths, totals) |p, *t| try out.print("{d}\t{s}\n", .{ t.load(.monotonic), p });
+}
+
 fn cmdDocker(alloc: std.mem.Allocator, io: std.Io, out: *std.Io.Writer) !void {
     const res = std.process.run(alloc, io, .{
         .argv = &.{ "docker", "system", "df" },
@@ -100,6 +111,7 @@ pub fn main(init: std.process.Init) !void {
     }
     if (std.mem.eql(u8, args[1], "size") and args.len > 2) return cmdSize(alloc, out, args[2]);
     if (std.mem.eql(u8, args[1], "global")) return cmdGlobal(alloc, out);
+    if (std.mem.eql(u8, args[1], "size")) return cmdSize(out, args[2..]);
     if (std.mem.eql(u8, args[1], "docker")) return cmdDocker(alloc, io, out);
     if (std.mem.eql(u8, args[1], "scan")) {
         var root: []const u8 = ".";
