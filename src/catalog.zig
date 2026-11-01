@@ -48,7 +48,7 @@ pub const entries = [_]Entry{
     .{ .id = "codex-log", .tool = "Codex CLI", .name = "Logs", .path = ".codex/log", .category = .logs, .risk = .safe, .description = "Codex log files.", .loses = "Logs useful only for bug reports." },
     .{ .id = "opencode-storage", .tool = "opencode", .name = "Sessions and messages", .path = ".local/share/opencode/storage", .category = .history, .risk = .careful, .description = "Stored opencode sessions and messages.", .loses = "Past opencode conversations." },
     .{ .id = "opencode-log", .tool = "opencode", .name = "Logs", .path = ".local/share/opencode/log", .category = .logs, .risk = .safe, .description = "opencode log files.", .loses = "Logs useful only for bug reports." },
-    .{ .id = "opencode-cache", .tool = "opencode", .name = "Cache", .path = ".cache/opencode", .category = .cache, .risk = .safe, .description = "Downloaded and generated data opencode can fetch again.", .loses = "Nothing; downloaded again." },
+    .{ .id = "opencode-cache", .tool = "opencode", .name = "Cache", .path = ".cache/opencode", .category = .cache, .risk = .careful, .description = "Plugin dependencies, downloaded skills and model lists that opencode keeps here.", .loses = "opencode downloads them again, but a plugin version that is no longer available will fail to reinstall." },
 
     // ---- Editors
     .{ .id = "vscode-cached-data", .tool = "VS Code", .name = "Cached data", .path = "Library/Application Support/Code/CachedData", .category = .cache, .risk = .safe, .description = "Compiled JavaScript cache.", .loses = "Slightly slower first start." },

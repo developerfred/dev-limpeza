@@ -23,7 +23,7 @@ The 40 locations below are checked under your home directory. A location appears
 | Codex CLI | Logs | `.codex/log` | logs | safe | Logs useful only for bug reports. |
 | opencode | Sessions and messages | `.local/share/opencode/storage` | history | careful | Past opencode conversations. |
 | opencode | Logs | `.local/share/opencode/log` | logs | safe | Logs useful only for bug reports. |
-| opencode | Cache | `.cache/opencode` | cache | safe | Nothing; downloaded again. |
+| opencode | Cache | `.cache/opencode` | cache | careful | opencode downloads them again, but a plugin version that is no longer available will fail to reinstall. |
 | VS Code | Cached data | `Library/Application Support/Code/CachedData` | cache | safe | Slightly slower first start. |
 | VS Code | Web cache | `Library/Application Support/Code/Cache` | cache | safe | Nothing; recreated. |
 | VS Code | Logs | `Library/Application Support/Code/logs` | logs | safe | Old logs. |

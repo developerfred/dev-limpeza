@@ -18,6 +18,11 @@ fn lessBySize(_: void, a: Item, b: Item) bool {
 
 /// Finds every cache under `root` and sizes it in parallel. Result is sorted by size, largest first.
 pub fn scanAll(alloc: std.mem.Allocator, root: []const u8) ![]Item {
+    // A missing or unreadable root must be an error, not an empty "clean" result.
+    const root_z = try alloc.allocSentinel(u8, root.len, 0);
+    @memcpy(root_z, root);
+    if (std.c.access(root_z, 0) != 0) return error.RootNotFound;
+
     var pool: walker.Pool = .{};
     const found = try pool.scan(root);
     defer std.heap.c_allocator.free(found);

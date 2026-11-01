@@ -288,7 +288,9 @@ fn discoverDir(pool: *Pool, job: Job, buf: []align(8) u8) void {
                 continue;
             };
             pool.lock();
-            pool.found.append(alloc, .{ .path = keep, .label = t.label, .total = total, .last_used = newest }) catch {};
+            // A project holding nothing but caches has no sibling activity: fall back to the cache's own mtime.
+            const last_used = if (newest != 0) newest else e.mtime;
+            pool.found.append(alloc, .{ .path = keep, .label = t.label, .total = total, .last_used = last_used }) catch {};
             pool.unlock();
             pool.push(.{ .path = full, .kind = .size, .total = total });
             continue;

@@ -26,7 +26,7 @@ fn cmdScan(alloc: std.mem.Allocator, out: *std.Io.Writer, root: []const u8, days
         total += item.size;
         if (stale) stale_total += item.size;
         try out.print("{s:>10}  {d:>5}d  {s:<9} {s}{s}\n", .{
-            fmtSize(&sb, item.size), idle, item.label, item.path,
+            fmtSize(&sb, item.size), @as(i64, @intCast(idle)), item.label, item.path,
             if (stale) "  [stale]" else "",
         });
     }
@@ -51,10 +51,10 @@ fn cmdGlobal(alloc: std.mem.Allocator, out: *std.Io.Writer) !void {
     const items = try core.scanGlobal(alloc);
     var total: u64 = 0;
     var sb: [32]u8 = undefined;
-    try out.print("{s:>10}  {s:<8} {s:<7} {s:<14} {s}\n", .{ "SIZE", "TYPE", "RISK", "TOOL", "WHAT" });
+    try out.print("{s:>10}  {s:<12} {s:<7} {s:<14} {s}\n", .{ "SIZE", "TYPE", "RISK", "TOOL", "WHAT" });
     for (items) |it| {
         total += it.size;
-        try out.print("{s:>10}  {s:<8} {s:<7} {s:<14} {s}  ({s})\n", .{
+        try out.print("{s:>10}  {s:<12} {s:<7} {s:<14} {s}  ({s})\n", .{
             fmtSize(&sb, it.size), @tagName(it.entry.category), @tagName(it.entry.risk),
             it.entry.tool,         it.entry.name,                it.path,
         });

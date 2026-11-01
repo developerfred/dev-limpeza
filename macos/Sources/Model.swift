@@ -109,7 +109,7 @@ final class Model: ObservableObject {
     }
 
     func scan() async {
-        guard !scanning else { return }
+        guard !scanning, !removing else { return }
         scanning = true
         message = nil
         let root = self.root
