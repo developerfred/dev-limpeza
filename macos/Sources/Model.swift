@@ -43,8 +43,14 @@ final class Model: ObservableObject {
         ByteCountFormatter.string(fromByteCount: Int64(bytes), countStyle: .file)
     }
 
+    private var started = false
+
     func start() {
-        UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound]) { _, _ in }
+        guard !started else { return }
+        started = true
+        if Bundle.main.bundleIdentifier != nil {
+            UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound]) { _, _ in }
+        }
         Task {
             while true {
                 await scan()
@@ -99,7 +105,8 @@ final class Model: ObservableObject {
     private func notifyIfNeeded() {
         let key = "lastNotified"
         let last = UserDefaults.standard.object(forKey: key) as? Date ?? .distantPast
-        guard staleBytes >= notifyThreshold, Date().timeIntervalSince(last) > 24 * 3600 else { return }
+        guard Bundle.main.bundleIdentifier != nil,
+              staleBytes >= notifyThreshold, Date().timeIntervalSince(last) > 24 * 3600 else { return }
         let content = UNMutableNotificationContent()
         content.title = "Dev Cache Clean"
         content.body = "\(Model.format(staleBytes)) in \(staleItems.count) caches unused for \(staleDays)+ days."

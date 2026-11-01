@@ -13,7 +13,7 @@ fn fmtSize(buf: []u8, bytes: u64) []const u8 {
 }
 
 fn cmdScan(alloc: std.mem.Allocator, io: std.Io, out: *std.Io.Writer, root: []const u8, days: i128) !void {
-    const items = try core.scanAll(alloc, io, root);
+    const items = try core.scanAll(alloc, root);
 
     var stale_total: u64 = 0;
     var total: u64 = 0;

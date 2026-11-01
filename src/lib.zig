@@ -20,7 +20,7 @@ export fn dcc_scan(root: [*:0]const u8) ?[*:0]u8 {
     defer threaded.deinit();
     const io = threaded.io();
 
-    const items = core.scanAll(a, io, std.mem.span(root)) catch return null;
+    const items = core.scanAll(a, std.mem.span(root)) catch return null;
     const out = a.alloc(Out, items.len) catch return null;
     for (items, out) |it, *o| o.* = .{
         .path = it.path,
