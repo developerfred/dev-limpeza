@@ -62,6 +62,10 @@ func snapshot(_ items: [CacheItem]) -> [String: UInt64] {
     let before = snapshot(model.items)
     await model.scan()
     check(snapshot(model.items) == before, "no changes: same result")
+    // Events from the setup above can still be arriving on the first rescan; once consumed, nothing is left.
+    Thread.sleep(forTimeInterval: 1.5)
+    await model.scan()
+    check(snapshot(model.items) == before, "no changes: same result again")
     check((model.scanNote ?? "").hasPrefix("Nothing changed"), "no changes: note says so (\(model.scanNote ?? "-"))")
 
     // Real changes, in the places a developer's disk changes.

@@ -46,6 +46,7 @@ jobs:
         with:
           name: macos
           path: dist/*
+          if-no-files-found: error
 
   cli:
     name: CLI ${{ matrix.target }}
@@ -66,7 +67,8 @@ jobs:
         run: |
           d="dev-cache-clean-${VERSION}-${{ matrix.target }}"
           mkdir -p "$d" dist
-          zig build-exe src/main.zig -O ReleaseSafe -target "${{ matrix.target }}" -femit-bin="$d/dev-cache-clean"
+          ext=""; case "${{ matrix.target }}" in *windows*) ext=".exe" ;; esac
+          zig build-exe src/main.zig -O ReleaseSafe -target "${{ matrix.target }}" -femit-bin="$d/dev-cache-clean$ext"
           cp LICENSE README.md "$d/"
           case "${{ matrix.target }}" in
             *windows*) rm -f "$d"/*.pdb; zip -qr "dist/$d.zip" "$d" ;;
@@ -76,6 +78,7 @@ jobs:
         with:
           name: cli-${{ matrix.target }}
           path: dist/*
+          if-no-files-found: error
 
   publish:
     name: Publish release

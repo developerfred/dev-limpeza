@@ -37,7 +37,8 @@ jobs:
         run: |
           for t in x86_64-linux-musl aarch64-linux-musl x86_64-windows-gnu aarch64-windows-gnu; do
             mkdir -p "dist/$t"
-            zig build-exe src/main.zig -O ReleaseSafe -target "$t" -femit-bin="dist/$t/dev-cache-clean"
+            ext=""; case "$t" in *windows*) ext=".exe" ;; esac
+            zig build-exe src/main.zig -O ReleaseSafe -target "$t" -femit-bin="dist/$t/dev-cache-clean$ext"
           done
       - name: Smoke test the Linux binary
         run: |
@@ -49,6 +50,7 @@ jobs:
         with:
           name: windows-x86_64
           path: dist/x86_64-windows-gnu/dev-cache-clean.exe
+          if-no-files-found: error
 
   windows-smoke:
     name: Windows smoke test
