@@ -125,8 +125,10 @@ pub const Pool = struct {
     }
 
     /// Walks `root`, returning every cache found with its size counter filled in.
-    pub fn scan(self: *Pool, root: []const u8) ![]Found {
-        self.push(.{ .path = try dupeZ(root), .kind = .discover });
+    /// `depth` is how many levels `root` already sits below the original scan root, so a partial
+    /// rescan of a subfolder finds exactly the caches a full scan would.
+    pub fn scan(self: *Pool, root: []const u8, depth: u32) ![]Found {
+        self.push(.{ .path = try dupeZ(root), .kind = .discover, .depth = depth });
         try self.run();
         return self.found.toOwnedSlice(alloc);
     }

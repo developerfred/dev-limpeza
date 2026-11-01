@@ -74,6 +74,7 @@ struct ContentView: View {
             if tab == 0 {
                 Text("\(Model.format(model.staleBytes)) reclaimable in \(model.staleItems.count) caches unused for \(model.staleDays)+ days")
                     .font(.subheadline).foregroundStyle(.secondary)
+                if let n = model.scanNote { Text(n).font(.caption2).foregroundStyle(.tertiary) }
                 HStack {
                     Text(model.root).font(.caption).lineLimit(1).truncationMode(.head)
                     Spacer()
@@ -111,6 +112,7 @@ struct ContentView: View {
             HStack {
                 Button("Select stale") { model.selectStale() }
                 Button("Rescan") { Task { await model.scan() } }.disabled(model.scanning)
+                    .contextMenu { Button("Full rescan") { Task { await model.scan(forceFull: true) } } }
                 Spacer()
                 Button("Move to Trash (\(model.selection.count))") { pending = .trash }
                     .disabled(model.selection.isEmpty || model.removing)

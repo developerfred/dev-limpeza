@@ -37,7 +37,7 @@ fn cmdScan(alloc: std.mem.Allocator, out: *std.Io.Writer, root: []const u8, days
 }
 
 fn cmdGlobal(alloc: std.mem.Allocator, out: *std.Io.Writer) !void {
-    const items = try core.scanGlobal(alloc);
+    const items = try core.scanGlobal(alloc, &.{});
     var total: u64 = 0;
     var sb: [32]u8 = undefined;
     try out.print("{s:>10}  {s:<12} {s:<7} {s:<14} {s}\n", .{ "SIZE", "TYPE", "RISK", "TOOL", "WHAT" });

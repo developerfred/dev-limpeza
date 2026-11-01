@@ -24,7 +24,8 @@ enum Screenshots {
         m.root = "~/projects"
         m.staleDays = 30
         func c(_ p: String, _ l: String, _ mb: Double, _ d: Int) -> CacheItem {
-            CacheItem(path: "~/projects/" + p, label: l, size: UInt64(mb * 1e6), idle_days: d)
+            CacheItem(path: "~/projects/" + p, label: l, size: UInt64(mb * 1e6),
+                      last_used: Int64(Date().timeIntervalSince1970) - Int64(d) * 86400 - 60)
         }
         m.items = [
             c("rust-api/target", "rust", 2100, 97), c("acme-web/node_modules", "node", 1800, 212),

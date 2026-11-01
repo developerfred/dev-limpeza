@@ -60,7 +60,7 @@ Measured on the author's `~/development` (about 550 caches, 34 GB, Apple silicon
 | Parallel sizing | 1 min 30 s |
 | Parallel discovery and sizing with `getattrlistbulk` | about 20 s |
 
-Results were compared with `find` (same set of caches) and `du` (sizes within rounding). Sizes are allocated bytes on disk. Hard-linked stores such as pnpm's may free less than they show.
+Rescans after the first one only re-measure what the macOS file event log says changed: with nothing changed, `~/development` took 0.0 s (3.6 s full) and the global catalog 0.1 s (60 s full). Results were compared with `find` (same set of caches) and `du` (sizes within rounding). Sizes are allocated bytes on disk. Hard-linked stores such as pnpm's may free less than they show.
 
 ## Build and run
 

@@ -13,6 +13,7 @@ struct SystemView: View {
                 Spacer()
                 if model.scanningGlobal { ProgressView().controlSize(.small) }
             }
+            if let n = model.globalNote { Text(n).font(.caption2).foregroundStyle(.tertiary) }
             if model.globalItems.isEmpty {
                 Text(model.scanningGlobal ? "Measuring…" : "Nothing found.")
                     .foregroundStyle(.secondary).frame(maxWidth: .infinity, minHeight: 120)
@@ -27,6 +28,7 @@ struct SystemView: View {
             HStack {
                 Button("Select safe") { model.selectSafeGlobal() }
                 Button("Rescan") { Task { await model.scanGlobal() } }.disabled(model.scanningGlobal)
+                    .contextMenu { Button("Full rescan") { Task { await model.scanGlobal(forceFull: true) } } }
                 Spacer()
                 Button("Move to Trash (\(model.globalSelection.count))") { pending = .trash }
                     .disabled(model.globalSelection.isEmpty || model.removing)

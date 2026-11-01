@@ -18,13 +18,18 @@ fn lessBySize(_: void, a: Item, b: Item) bool {
 
 /// Finds every cache under `root` and sizes it in parallel. Result is sorted by size, largest first.
 pub fn scanAll(alloc: std.mem.Allocator, root: []const u8) ![]Item {
+    return scanFrom(alloc, root, 0);
+}
+
+/// Like `scanAll` for a subfolder that sits `depth` levels below the scan root.
+pub fn scanFrom(alloc: std.mem.Allocator, root: []const u8, depth: u32) ![]Item {
     // A missing or unreadable root must be an error, not an empty "clean" result.
     const root_z = try alloc.allocSentinel(u8, root.len, 0);
     @memcpy(root_z, root);
     if (std.c.access(root_z, 0) != 0) return error.RootNotFound;
 
     var pool: walker.Pool = .{};
-    const found = try pool.scan(root);
+    const found = try pool.scan(root, depth);
     defer std.heap.c_allocator.free(found);
 
     const items = try alloc.alloc(Item, found.len);
@@ -60,13 +65,26 @@ fn lessGlobalBySize(_: void, a: GlobalItem, b: GlobalItem) bool {
 }
 
 /// Sizes every catalog entry that exists under the home directory, largest first. Empty ones are dropped.
-pub fn scanGlobal(alloc: std.mem.Allocator) ![]GlobalItem {
+/// Sizes the given directories in parallel (allocated bytes); missing ones count as 0.
+pub fn sizePaths(alloc: std.mem.Allocator, paths: []const []const u8) ![]u64 {
+    const totals = try alloc.alloc(std.atomic.Value(u64), paths.len);
+    for (totals) |*t| t.* = std.atomic.Value(u64).init(0);
+    var pool: walker.Pool = .{};
+    try pool.sizePaths(paths, totals);
+    const out = try alloc.alloc(u64, paths.len);
+    for (totals, out) |*t, *o| o.* = t.load(.monotonic);
+    return out;
+}
+
+/// `skip` lists absolute catalog paths the caller already knows; they are not walked again.
+pub fn scanGlobal(alloc: std.mem.Allocator, skip: []const []const u8) ![]GlobalItem {
     const home = std.mem.span(std.c.getenv("HOME") orelse return error.NoHome);
 
     var paths: std.ArrayList([]const u8) = .empty;
     var idx: std.ArrayList(usize) = .empty;
     for (catalog.entries, 0..) |e, i| {
         const full = try std.fs.path.join(alloc, &.{ home, e.path });
+        if (isSkipped(full, skip)) continue;
         const z = try alloc.allocSentinel(u8, full.len, 0);
         @memcpy(z, full);
         if (std.c.access(z, 0) != 0) continue;
@@ -87,4 +105,11 @@ pub fn scanGlobal(alloc: std.mem.Allocator) ![]GlobalItem {
     }
     std.mem.sort(GlobalItem, out.items, {}, lessGlobalBySize);
     return out.items;
+}
+
+fn isSkipped(path: []const u8, skip: []const []const u8) bool {
+    for (skip) |s| {
+        if (std.mem.eql(u8, s, path)) return true;
+    }
+    return false;
 }

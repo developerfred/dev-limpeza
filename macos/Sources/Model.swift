@@ -1,16 +1,19 @@
 import Foundation
 import UserNotifications
 
-struct CacheItem: Identifiable, Decodable, Hashable {
+struct CacheItem: Identifiable, Codable, Hashable {
     let path: String
     let label: String
-    let size: UInt64
-    let idle_days: Int
+    var size: UInt64
+    /// Newest activity of the owning project, seconds since the epoch.
+    let last_used: Int64
     var id: String { path }
+    /// Computed, so a cached result keeps aging correctly.
+    var idle_days: Int { max(0, Int((Date().timeIntervalSince1970 - Double(last_used)) / 86400)) }
 }
 
 /// A known global location (AI agent data, package manager cache, Xcode...). See src/catalog.zig.
-struct GlobalItem: Identifiable, Decodable, Hashable {
+struct GlobalItem: Identifiable, Codable, Hashable {
     let id: String
     let tool: String
     let name: String
@@ -19,7 +22,7 @@ struct GlobalItem: Identifiable, Decodable, Hashable {
     let loses: String
     let category: String
     let risk: String
-    let size: UInt64
+    var size: UInt64
     var isCareful: Bool { risk == "careful" }
 }
 
@@ -39,6 +42,10 @@ final class Model: ObservableObject {
     @Published var removing = false
     @Published var lastScan: Date?
     @Published var message: String?
+    /// How the last scans were done, e.g. "Updated from 3 changed folders in 0.4 s".
+    @Published var scanNote: String?
+    @Published var globalNote: String?
+    private let store = CacheStore()
 
     @Published var root: String {
         didSet { UserDefaults.standard.set(root, forKey: "root") }
@@ -94,45 +101,161 @@ final class Model: ObservableObject {
         }
     }
 
-    /// Runs a blocking C scan on its own thread with a large stack and decodes its JSON result.
-    private func callScan<T: Decodable>(_ body: @escaping @Sendable () -> UnsafeMutablePointer<CChar>?) async -> T? {
+    // MARK: scanning (incremental when the file system event log allows it)
+
+    /// The real path FSEvents reports (Foundation's resolvingSymlinksInPath drops the /private prefix, realpath does not).
+    private func canonical(_ p: String) -> String {
+        guard let r = realpath(p, nil) else { return p }
+        defer { free(r) }
+        return String(cString: r)
+    }
+
+    private func detect(since id: UInt64, under paths: [String]) async -> ChangeResult {
         await withCheckedContinuation { cont in
-            let t = Thread {
-                guard let raw = body() else { cont.resume(returning: nil); return }
-                defer { dcc_free(raw) }
-                cont.resume(returning: try? JSONDecoder().decode(T.self, from: Data(bytes: raw, count: strlen(raw))))
-            }
+            DispatchQueue.global(qos: .utility).async { cont.resume(returning: FSChanges.changes(since: id, under: paths)) }
+        }
+    }
+
+    /// Runs `body` with `strings` as a C array on a big-stack thread (the C scans are blocking and recursive-free but heavy).
+    private func onBigThread<T>(_ body: @escaping @Sendable () -> T) async -> T {
+        await withCheckedContinuation { cont in
+            let t = Thread { cont.resume(returning: body()) }
             t.stackSize = 16 << 20
             t.qualityOfService = .utility
             t.start()
         }
     }
 
-    func scan() async {
+    private func sizes(of paths: [String]) async -> [UInt64]? {
+        guard !paths.isEmpty else { return [] }
+        return await onBigThread {
+            var cstrs: [UnsafePointer<CChar>?] = paths.map { UnsafePointer(strdup($0)) }
+            defer { cstrs.forEach { free(UnsafeMutablePointer(mutating: $0)) } }
+            var out = [UInt64](repeating: 0, count: paths.count)
+            let rc = dcc_size_paths(&cstrs, paths.count, &out)
+            return rc == 0 ? out : nil
+        }
+    }
+
+    nonisolated private static func decode<T: Decodable>(_ raw: UnsafeMutablePointer<CChar>?) -> T? {
+        guard let raw else { return nil }
+        defer { dcc_free(raw) }
+        return try? JSONDecoder().decode(T.self, from: Data(bytes: raw, count: strlen(raw)))
+    }
+
+    func scan(forceFull: Bool = false) async {
         guard !scanning, !removing else { return }
         scanning = true
         message = nil
         let root = self.root
-        let found: [CacheItem]? = await callScan { root.withCString { dcc_scan($0) } }
+        let started = Date()
+        let idBefore = FSChanges.currentEventId()
+        let uuid = FSChanges.volumeUUID(of: root) ?? ""
+
+        var result: [CacheItem]?
+        var note = ""
+        if !forceFull, !uuid.isEmpty, let cached = store.load("dev:" + root),
+           cached.volumeUUID == uuid, let known = cached.devItems {
+            let real = canonical(root)
+            if case .changed(let paths) = await detect(since: cached.eventId, under: [real]) {
+                let mapped = paths.map { $0 == real || $0.hasPrefix(real + "/") ? root + $0.dropFirst(real.count) : $0 }
+                let plan = Planner.plan(known: known.map(\.path), root: root, changed: mapped)
+                if ProcessInfo.processInfo.environment["DCC_DEBUG"] != nil {
+                    print("DEBUG real=\(real)\n  events=\(paths)\n  plan resize=\(plan.resize) rescan=\(plan.rescan.map(\.path)) full=\(plan.full)")
+                }
+                if !plan.full {
+                    result = await apply(plan, to: known)
+                    let n = plan.rescan.count + plan.resize.count
+                    note = n == 0 ? "Nothing changed" : "Updated \(n) changed \(n == 1 ? "folder" : "folders")"
+                }
+            }
+        }
+        if result == nil {
+            result = await onBigThread { [root] in Model.decode(root.withCString { dcc_scan($0) }) }
+            note = "Full scan"
+        }
         scanning = false
-        guard let found else {
+        guard let found = result else {
             message = "Scan failed for \(root)"
             return
         }
-        items = found
+        scanNote = note + String(format: " in %.1f s", Date().timeIntervalSince(started))
+        items = found.sorted { $0.size > $1.size }
         selection = selection.intersection(Set(found.map(\.path)))
         lastScan = Date()
+        if !uuid.isEmpty {
+            store.save(ScopeCache(eventId: idBefore, volumeUUID: uuid, savedAt: Date(), devItems: items, globalItems: nil), for: "dev:" + root)
+        }
         notifyIfNeeded()
     }
 
-    func scanGlobal() async {
+    /// Applies an incremental plan to the previously known caches.
+    private func apply(_ plan: Planner.Plan, to known: [CacheItem]) async -> [CacheItem] {
+        var items = known
+        var refreshed = Set<String>()
+        for (path, depth) in plan.rescan {
+            let sub: [CacheItem] = await onBigThread { [path] in
+                Model.decode(path.withCString { dcc_scan_sub($0, UInt32(depth)) }) ?? []   // nil: folder is gone
+            }
+            items.removeAll { $0.path == path || $0.path.hasPrefix(path + "/") }
+            items += sub
+            refreshed.formUnion(sub.map(\.path))
+        }
+        let fm = FileManager.default
+        let gone = plan.resize.filter { !fm.fileExists(atPath: $0) }
+        items.removeAll { gone.contains($0.path) }
+        let toSize = plan.resize.filter { r in !refreshed.contains(r) && !gone.contains(r) && items.contains { $0.path == r } }.sorted()
+        if let new = await sizes(of: toSize) {
+            let map = Dictionary(uniqueKeysWithValues: zip(toSize, new))
+            for i in items.indices { if let s = map[items[i].path] { items[i].size = s } }
+        }
+        return items
+    }
+
+    func scanGlobal(forceFull: Bool = false) async {
         guard !scanningGlobal else { return }
         scanningGlobal = true
-        let found: [GlobalItem]? = await callScan { dcc_scan_global() }
+        let started = Date()
+        let idBefore = FSChanges.currentEventId()
+        let home = FileManager.default.homeDirectoryForCurrentUser.path
+        let uuid = FSChanges.volumeUUID(of: home) ?? ""
+
+        var result: [GlobalItem]?
+        var note = ""
+        if !forceFull, !uuid.isEmpty, let cached = store.load("global"), cached.volumeUUID == uuid,
+           let known = cached.globalItems, !known.isEmpty {
+            let real = known.map { canonical($0.path) }
+            if case .changed(let paths) = await detect(since: cached.eventId, under: real) {
+                let changed = paths.map { Planner.normalize($0) }
+                let dirty = Set(known.indices.filter { i in
+                    changed.contains { $0 == real[i] || $0.hasPrefix(real[i] + "/") || real[i].hasPrefix($0 + "/") }
+                })
+                let clean = known.indices.filter { !dirty.contains($0) }.map { known[$0] }
+                let skip = clean.map(\.path)
+                let fresh: [GlobalItem]? = await onBigThread {
+                    var cstrs: [UnsafePointer<CChar>?] = skip.map { UnsafePointer(strdup($0)) }
+                    defer { cstrs.forEach { free(UnsafeMutablePointer(mutating: $0)) } }
+                    let raw = cstrs.withUnsafeBufferPointer { dcc_scan_global_partial($0.baseAddress, skip.count) }
+                    return Model.decode(raw)
+                }
+                if let fresh {
+                    result = clean + fresh
+                    note = dirty.isEmpty ? "Nothing changed" : "Updated \(dirty.count) changed \(dirty.count == 1 ? "location" : "locations")"
+                }
+            }
+        }
+        if result == nil {
+            result = await onBigThread { Model.decode(dcc_scan_global()) }
+            note = "Full scan"
+        }
         scanningGlobal = false
-        guard let found else { return }
-        globalItems = found
+        guard let found = result else { return }
+        globalNote = note + String(format: " in %.1f s", Date().timeIntervalSince(started))
+        globalItems = found.sorted { $0.size > $1.size }
         globalSelection = globalSelection.intersection(Set(found.map(\.path)))
+        if !uuid.isEmpty {
+            store.save(ScopeCache(eventId: idBefore, volumeUUID: uuid, savedAt: Date(), devItems: nil, globalItems: globalItems), for: "global")
+        }
     }
 
     func selectStale() { selection = Set(staleItems.map(\.path)) }
