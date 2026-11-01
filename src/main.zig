@@ -36,17 +36,6 @@ fn cmdScan(alloc: std.mem.Allocator, out: *std.Io.Writer, root: []const u8, days
     });
 }
 
-/// Sizes one directory with the parallel walker (used for benchmarking).
-fn cmdSize(alloc: std.mem.Allocator, out: *std.Io.Writer, path: []const u8) !void {
-    const walker = @import("walker.zig");
-    var pool: walker.Pool = .{};
-    var totals = [_]std.atomic.Value(u64){std.atomic.Value(u64).init(0)};
-    try pool.sizePaths(&.{path}, &totals);
-    _ = alloc;
-    var sb: [32]u8 = undefined;
-    try out.print("{s}  {s}\n", .{ fmtSize(&sb, totals[0].load(.monotonic)), path });
-}
-
 fn cmdGlobal(alloc: std.mem.Allocator, out: *std.Io.Writer) !void {
     const items = try core.scanGlobal(alloc);
     var total: u64 = 0;
@@ -109,7 +98,6 @@ pub fn main(init: std.process.Init) !void {
         , .{});
         return;
     }
-    if (std.mem.eql(u8, args[1], "size") and args.len > 2) return cmdSize(alloc, out, args[2]);
     if (std.mem.eql(u8, args[1], "global")) return cmdGlobal(alloc, out);
     if (std.mem.eql(u8, args[1], "size")) return cmdSize(out, args[2..]);
     if (std.mem.eql(u8, args[1], "docker")) return cmdDocker(alloc, io, out);
