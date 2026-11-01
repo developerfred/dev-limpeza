@@ -3,13 +3,22 @@ import AppKit
 
 struct ContentView: View {
     @ObservedObject var model: Model
+    @ObservedObject var docker: DockerModel
     @State private var confirming = false
+    @State private var tab = 0
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
             header
+            Picker("", selection: $tab) {
+                Text("Dev caches").tag(0)
+                Text("Docker").tag(1)
+            }
+            .pickerStyle(.segmented).labelsHidden()
             Divider()
-            if model.items.isEmpty {
+            if tab == 1 {
+                DockerView(docker: docker).frame(minHeight: 200, alignment: .top)
+            } else if model.items.isEmpty {
                 Text(model.scanning ? "Scanning…" : "No caches found.")
                     .foregroundStyle(.secondary)
                     .frame(maxWidth: .infinity, minHeight: 120)
@@ -22,7 +31,7 @@ struct ContentView: View {
                 .frame(height: 300)
             }
             Divider()
-            footer
+            if tab == 0 { footer }
         }
         .padding(14)
         .frame(width: 520)

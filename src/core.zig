@@ -36,7 +36,9 @@ pub fn scanAll(alloc: std.mem.Allocator, root: []const u8) ![]Item {
     return items;
 }
 
-pub fn idleDays(io: std.Io, item: Item) i128 {
-    const now = std.Io.Timestamp.now(io, .real).nanoseconds;
+pub fn idleDays(item: Item) i128 {
+    var ts: std.c.timespec = undefined;
+    _ = std.c.clock_gettime(.REALTIME, &ts);
+    const now: i128 = @as(i128, ts.sec) * std.time.ns_per_s + ts.nsec;
     return @divTrunc(now - item.last_used, tg.ns_per_day);
 }

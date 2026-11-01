@@ -12,7 +12,7 @@ fn fmtSize(buf: []u8, bytes: u64) []const u8 {
     return std.fmt.bufPrint(buf, "{d:.1} {s}", .{ v, units[i] }) catch "?";
 }
 
-fn cmdScan(alloc: std.mem.Allocator, io: std.Io, out: *std.Io.Writer, root: []const u8, days: i128) !void {
+fn cmdScan(alloc: std.mem.Allocator, out: *std.Io.Writer, root: []const u8, days: i128) !void {
     const items = try core.scanAll(alloc, root);
 
     var stale_total: u64 = 0;
@@ -21,7 +21,7 @@ fn cmdScan(alloc: std.mem.Allocator, io: std.Io, out: *std.Io.Writer, root: []co
 
     try out.print("{s:>10}  {s:>6}  {s:<9} {s}\n", .{ "SIZE", "IDLE", "TYPE", "PATH" });
     for (items) |item| {
-        const idle = core.idleDays(io, item);
+        const idle = core.idleDays(item);
         const stale = idle >= days;
         total += item.size;
         if (stale) stale_total += item.size;
@@ -82,7 +82,7 @@ pub fn main(init: std.process.Init) !void {
                 days = try std.fmt.parseInt(i128, args[i], 10);
             } else root = args[i];
         }
-        return cmdScan(alloc, io, out, root, days);
+        return cmdScan(alloc, out, root, days);
     }
     try out.print("unknown command: {s}\n", .{args[1]});
 }

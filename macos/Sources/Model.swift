@@ -64,11 +64,16 @@ final class Model: ObservableObject {
         scanning = true
         message = nil
         let root = self.root
-        let found: [CacheItem]? = await Task.detached(priority: .utility) {
-            guard let raw = root.withCString({ dcc_scan($0) }) else { return nil }
-            defer { dcc_free(raw) }
-            return try? JSONDecoder().decode([CacheItem].self, from: Data(bytes: raw, count: strlen(raw)))
-        }.value
+        let found: [CacheItem]? = await withCheckedContinuation { cont in
+            let t = Thread {
+                guard let raw = root.withCString({ dcc_scan($0) }) else { cont.resume(returning: nil); return }
+                defer { dcc_free(raw) }
+                cont.resume(returning: try? JSONDecoder().decode([CacheItem].self, from: Data(bytes: raw, count: strlen(raw))))
+            }
+            t.stackSize = 16 << 20
+            t.qualityOfService = .utility
+            t.start()
+        }
         scanning = false
         guard let found else {
             message = "Scan failed for \(root)"
