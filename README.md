@@ -62,6 +62,10 @@ Measured on the author's `~/development` (about 550 caches, 34 GB, Apple silicon
 
 Rescans after the first one only re-measure what the macOS file event log says changed: with nothing changed, `~/development` took 0.0 s (3.6 s full) and the global catalog 0.1 s (60 s full). Results were compared with `find` (same set of caches) and `du` (sizes within rounding). Sizes are allocated bytes on disk. Hard-linked stores such as pnpm's may free less than they show.
 
+## Download
+
+Tagged releases are built by CI and listed on the [Releases](https://github.com/developerfred/dev-limpeza/releases) page: a macOS (Apple silicon) DMG and command-line tools for macOS, Linux and Windows. The window, menu bar, System and Docker tabs are **macOS only**; the Linux and Windows builds are an experimental command line (`scan`, `docker`). The macOS app is not notarized yet, see [docs/RELEASING.md](docs/RELEASING.md).
+
 ## Build and run
 
 Requirements: macOS 15+, Xcode command line tools, [Zig 0.17](https://ziglang.org/download/).

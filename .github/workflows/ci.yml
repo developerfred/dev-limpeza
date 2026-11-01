@@ -1,0 +1,66 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+env:
+  ZIG_VERSION: "0.17.0"
+
+jobs:
+  macos:
+    name: macOS app + tests
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: mlugg/setup-zig@v2
+        with:
+          version: ${{ env.ZIG_VERSION }}
+      - name: Build the app (Zig core + SwiftUI)
+        run: ./make-app.sh
+      - name: Incremental rescan equals full scan
+        run: ./test-incremental.sh
+
+  portable:
+    name: Linux and Windows CLI
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: mlugg/setup-zig@v2
+        with:
+          version: ${{ env.ZIG_VERSION }}
+      - name: Cross-compile every CLI target
+        run: |
+          for t in x86_64-linux-musl aarch64-linux-musl x86_64-windows-gnu aarch64-windows-gnu; do
+            zig build-exe src/main.zig -O ReleaseSafe -target "$t" -femit-bin="dist/$t/dev-cache-clean"
+          done
+      - name: Smoke test the Linux binary
+        run: |
+          mkdir -p fx/p/node_modules/a && echo '{}' > fx/p/package.json && echo hello > fx/p/node_modules/a/f
+          out=$(dist/x86_64-linux-musl/dev-cache-clean scan fx --days 0)
+          echo "$out"
+          echo "$out" | grep -q "1 caches"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: windows-x86_64
+          path: dist/x86_64-windows-gnu/dev-cache-clean.exe
+
+  windows-smoke:
+    name: Windows smoke test
+    needs: portable
+    runs-on: windows-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: windows-x86_64
+      - name: Scan a fixture folder
+        shell: bash
+        run: |
+          mkdir -p fx/p/node_modules/a && echo '{}' > fx/p/package.json && echo hello > fx/p/node_modules/a/f
+          out=$(./dev-cache-clean.exe scan fx --days 0)
+          echo "$out"
+          echo "$out" | grep -q "1 caches"

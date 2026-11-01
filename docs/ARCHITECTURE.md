@@ -12,7 +12,7 @@ macos/Sources (SwiftUI)  ──dcc_scan()──▶  src/lib.zig ──▶ src/co
 | File | Role |
 | --- | --- |
 | `targets.zig` | What counts as a cache (`node_modules`, `target`, `.venv`, ...), the marker file that proves it (e.g. `package.json` next to `node_modules`), directories never entered, and the maximum depth (8). |
-| `walker.zig` | One pool of threads (one per CPU) that both discovers caches and sizes them. Each directory is read with a single `getattrlistbulk` call that returns names, types, modification times and allocated sizes, so checking a marker file or a project's last activity costs no extra system calls. Discovery and sizing overlap. macOS only. |
+| `walker.zig` | Picks the implementation at compile time: `walker_macos.zig` on macOS, `walker_portable.zig` elsewhere (single-threaded, apparent sizes, no `global`). The macOS one is one pool of threads (one per CPU) that both discovers caches and sizes them. Each directory is read with a single `getattrlistbulk` call that returns names, types, modification times and allocated sizes, so checking a marker file or a project's last activity costs no extra system calls. Discovery and sizing overlap. macOS only. |
 | `core.zig` | `scanAll(root)`: runs the walker, converts the result, sorts by size. `idleDays` is the age of the newest file in the project that owns the cache. |
 | `lib.zig` | C ABI used by the app: `dcc_scan(root)` returns a malloc'd JSON array, `dcc_free` releases it. |
 | `main.zig` | Command-line front end (`scan`, `docker`). |

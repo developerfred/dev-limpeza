@@ -1,0 +1,103 @@
+name: Release
+
+# Push a tag like v0.2.0 to build and publish a release. "Run workflow" builds the same
+# files as workflow artifacts without publishing anything.
+on:
+  push:
+    tags: ["v*.*.*"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  ZIG_VERSION: "0.17.0"
+
+jobs:
+  macos:
+    name: macOS DMG
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: mlugg/setup-zig@v2
+        with:
+          version: ${{ env.ZIG_VERSION }}
+      - name: Version
+        run: echo "VERSION=${GITHUB_REF_NAME#v}" >> "$GITHUB_ENV"
+        if: startsWith(github.ref, 'refs/tags/')
+      - name: Version (manual run)
+        run: echo "VERSION=dev" >> "$GITHUB_ENV"
+        if: ${{ !startsWith(github.ref, 'refs/tags/') }}
+      - name: Build the app
+        run: ./make-app.sh
+      - name: Make the DMG
+        run: |
+          mkdir -p dist dmg
+          cp -R app/DevCacheClean.app dmg/
+          ln -s /Applications dmg/Applications
+          hdiutil create -volname "Dev Cache Clean" -srcfolder dmg -ov -format UDZO \
+            "dist/DevCacheClean-${VERSION}-macos-arm64.dmg"
+      - name: Package the CLI
+        run: |
+          d="dev-cache-clean-${VERSION}-macos-arm64"
+          mkdir -p "$d" && cp zig-out/bin/dev-cache-clean LICENSE README.md "$d/"
+          tar -czf "dist/$d.tar.gz" "$d"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: macos
+          path: dist/*
+
+  cli:
+    name: CLI ${{ matrix.target }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        target: [x86_64-linux-musl, aarch64-linux-musl, x86_64-windows-gnu, aarch64-windows-gnu]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: mlugg/setup-zig@v2
+        with:
+          version: ${{ env.ZIG_VERSION }}
+      - name: Version
+        run: |
+          if [ "${GITHUB_REF_TYPE}" = "tag" ]; then echo "VERSION=${GITHUB_REF_NAME#v}" >> "$GITHUB_ENV"; else echo "VERSION=dev" >> "$GITHUB_ENV"; fi
+      - name: Build and package
+        run: |
+          d="dev-cache-clean-${VERSION}-${{ matrix.target }}"
+          mkdir -p "$d" dist
+          zig build-exe src/main.zig -O ReleaseSafe -target "${{ matrix.target }}" -femit-bin="$d/dev-cache-clean"
+          cp LICENSE README.md "$d/"
+          case "${{ matrix.target }}" in
+            *windows*) rm -f "$d"/*.pdb; zip -qr "dist/$d.zip" "$d" ;;
+            *) tar -czf "dist/$d.tar.gz" "$d" ;;
+          esac
+      - uses: actions/upload-artifact@v4
+        with:
+          name: cli-${{ matrix.target }}
+          path: dist/*
+
+  publish:
+    name: Publish release
+    if: startsWith(github.ref, 'refs/tags/')
+    needs: [macos, cli]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      id-token: write
+      attestations: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
+      - name: Checksums
+        working-directory: dist
+        run: sha256sum * > SHA256SUMS.txt
+      - uses: actions/attest-build-provenance@v2
+        with:
+          subject-path: dist/*
+      - name: Create the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release create "$GITHUB_REF_NAME" dist/* --repo "$GITHUB_REPOSITORY" --title "$GITHUB_REF_NAME" --generate-notes

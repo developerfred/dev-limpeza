@@ -1,5 +1,6 @@
 //! Scanner core shared by the CLI and the C-ABI library.
 const std = @import("std");
+const builtin = @import("builtin");
 const walker = @import("walker.zig");
 const tg = @import("targets.zig");
 const catalog = @import("catalog.zig");
@@ -24,13 +25,11 @@ pub fn scanAll(alloc: std.mem.Allocator, root: []const u8) ![]Item {
 /// Like `scanAll` for a subfolder that sits `depth` levels below the scan root.
 pub fn scanFrom(alloc: std.mem.Allocator, root: []const u8, depth: u32) ![]Item {
     // A missing or unreadable root must be an error, not an empty "clean" result.
-    const root_z = try alloc.allocSentinel(u8, root.len, 0);
-    @memcpy(root_z, root);
-    if (std.c.access(root_z, 0) != 0) return error.RootNotFound;
+    if (!walker.exists(root)) return error.RootNotFound;
 
     var pool: walker.Pool = .{};
     const found = try pool.scan(root, depth);
-    defer std.heap.c_allocator.free(found);
+    defer walker.alloc.free(found);
 
     const items = try alloc.alloc(Item, found.len);
     for (found, items) |f, *it| {
@@ -40,18 +39,15 @@ pub fn scanFrom(alloc: std.mem.Allocator, root: []const u8, depth: u32) ![]Item 
             .size = f.total.load(.monotonic),
             .last_used = f.last_used,
         };
-        std.heap.c_allocator.free(f.path);
-        std.heap.c_allocator.destroy(f.total);
+        walker.alloc.free(f.path);
+        walker.alloc.destroy(f.total);
     }
     std.mem.sort(Item, items, {}, lessBySize);
     return items;
 }
 
 pub fn idleDays(item: Item) i128 {
-    var ts: std.c.timespec = undefined;
-    _ = std.c.clock_gettime(.REALTIME, &ts);
-    const now: i128 = @as(i128, ts.sec) * std.time.ns_per_s + ts.nsec;
-    return @divTrunc(now - item.last_used, tg.ns_per_day);
+    return @divTrunc(walker.nowNs() - item.last_used, tg.ns_per_day);
 }
 
 pub const GlobalItem = struct {
@@ -77,7 +73,16 @@ pub fn sizePaths(alloc: std.mem.Allocator, paths: []const []const u8) ![]u64 {
 }
 
 /// `skip` lists absolute catalog paths the caller already knows; they are not walked again.
-pub fn scanGlobal(alloc: std.mem.Allocator, skip: []const []const u8) ![]GlobalItem {
+/// The catalog lists macOS locations (Library/..., Xcode), so the global scan is macOS only for now.
+pub const scanGlobal = if (builtin.os.tag == .macos) scanGlobalMac else scanGlobalUnsupported;
+
+fn scanGlobalUnsupported(alloc: std.mem.Allocator, skip: []const []const u8) ![]GlobalItem {
+    _ = alloc;
+    _ = skip;
+    return error.UnsupportedPlatform;
+}
+
+fn scanGlobalMac(alloc: std.mem.Allocator, skip: []const []const u8) ![]GlobalItem {
     const home = std.mem.span(std.c.getenv("HOME") orelse return error.NoHome);
 
     var paths: std.ArrayList([]const u8) = .empty;

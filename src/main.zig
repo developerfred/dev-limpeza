@@ -54,7 +54,7 @@ fn cmdGlobal(alloc: std.mem.Allocator, out: *std.Io.Writer) !void {
 /// Benchmark/verification helper: prints the exact allocated bytes of each path.
 fn cmdSize(out: *std.Io.Writer, paths: []const []const u8) !void {
     const walker = @import("walker.zig");
-    const alloc = std.heap.c_allocator;
+    const alloc = @import("walker.zig").alloc;
     const totals = try alloc.alloc(std.atomic.Value(u64), paths.len);
     for (totals) |*t| t.* = std.atomic.Value(u64).init(0);
     var pool: walker.Pool = .{};
