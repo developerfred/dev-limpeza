@@ -8,6 +8,8 @@ git tag v0.2.0 && git push origin v0.2.0
 
 Pushing a `v*.*.*` tag builds everything and publishes a GitHub release with generated notes, `SHA256SUMS.txt` and build-provenance attestations. "Run workflow" on the Actions tab builds the same files as downloadable artifacts without publishing.
 
+The app's version (`CFBundleShortVersionString`) is taken from the tag by `make-app.sh`, so a tag `v0.3.0` produces an app that reports 0.3.0. Local builds report 0.0.0. (The v0.2.0 and v0.2.1 DMGs still report 0.1.0: the version was hard-coded before this was fixed.)
+
 ## What a release contains
 
 | File | What it is | Status |
