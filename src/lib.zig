@@ -33,3 +33,40 @@ export fn dcc_scan(root: [*:0]const u8) ?[*:0]u8 {
 export fn dcc_free(p: ?[*:0]u8) void {
     if (p) |ptr| std.heap.c_allocator.free(std.mem.span(ptr));
 }
+
+const GlobalOut = struct {
+    id: []const u8,
+    tool: []const u8,
+    name: []const u8,
+    path: []const u8,
+    description: []const u8,
+    loses: []const u8,
+    category: []const u8,
+    risk: []const u8,
+    size: u64,
+};
+
+/// Sizes the global tool caches in the catalog and returns a malloc'd JSON array (release with dcc_free).
+export fn dcc_scan_global() ?[*:0]u8 {
+    var arena = std.heap.ArenaAllocator.init(std.heap.page_allocator);
+    defer arena.deinit();
+    const a = arena.allocator();
+
+    const items = core.scanGlobal(a) catch return null;
+    const out = a.alloc(GlobalOut, items.len) catch return null;
+    for (items, out) |it, *o| o.* = .{
+        .id = it.entry.id,
+        .tool = it.entry.tool,
+        .name = it.entry.name,
+        .path = it.path,
+        .description = it.entry.description,
+        .loses = it.entry.loses,
+        .category = @tagName(it.entry.category),
+        .risk = @tagName(it.entry.risk),
+        .size = it.size,
+    };
+    const json = std.json.Stringify.valueAlloc(a, out, .{}) catch return null;
+    const res = std.heap.c_allocator.allocSentinel(u8, json.len, 0) catch return null;
+    @memcpy(res, json);
+    return res.ptr;
+}

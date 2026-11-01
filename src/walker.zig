@@ -106,10 +106,8 @@ pub const Pool = struct {
         }
     }
 
-    /// Walks `root`, returning every cache found with its size counter filled in.
-    pub fn scan(self: *Pool, root: []const u8) ![]Found {
-        self.push(.{ .path = try dupeZ(root), .kind = .discover });
-
+    /// Starts one worker per CPU and returns when every queued job is done.
+    fn run(self: *Pool) !void {
         const n = @max(2, std.Thread.getCpuCount() catch 4);
         const threads = try alloc.alloc(std.Thread, n);
         defer alloc.free(threads);
@@ -120,7 +118,19 @@ pub const Pool = struct {
         }
         for (threads[0..started]) |t| t.join();
         self.stack.deinit(alloc);
+    }
+
+    /// Walks `root`, returning every cache found with its size counter filled in.
+    pub fn scan(self: *Pool, root: []const u8) ![]Found {
+        self.push(.{ .path = try dupeZ(root), .kind = .discover });
+        try self.run();
         return self.found.toOwnedSlice(alloc);
+    }
+
+    /// Sizes known directories in parallel; `totals[i]` receives the bytes of `paths[i]`.
+    pub fn sizePaths(self: *Pool, paths: []const []const u8, totals: []std.atomic.Value(u64)) !void {
+        for (paths, totals) |p, *t| self.push(.{ .path = try dupeZ(p), .kind = .size, .total = t });
+        try self.run();
     }
 };
 

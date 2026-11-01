@@ -36,6 +36,21 @@ fn cmdScan(alloc: std.mem.Allocator, out: *std.Io.Writer, root: []const u8, days
     });
 }
 
+fn cmdGlobal(alloc: std.mem.Allocator, out: *std.Io.Writer) !void {
+    const items = try core.scanGlobal(alloc);
+    var total: u64 = 0;
+    var sb: [32]u8 = undefined;
+    try out.print("{s:>10}  {s:<8} {s:<7} {s:<14} {s}\n", .{ "SIZE", "TYPE", "RISK", "TOOL", "WHAT" });
+    for (items) |it| {
+        total += it.size;
+        try out.print("{s:>10}  {s:<8} {s:<7} {s:<14} {s}  ({s})\n", .{
+            fmtSize(&sb, it.size), @tagName(it.entry.category), @tagName(it.entry.risk),
+            it.entry.tool,         it.entry.name,                it.path,
+        });
+    }
+    try out.print("\n{d} locations, {s} total\n", .{ items.len, fmtSize(&sb, total) });
+}
+
 fn cmdDocker(alloc: std.mem.Allocator, io: std.Io, out: *std.Io.Writer) !void {
     const res = std.process.run(alloc, io, .{
         .argv = &.{ "docker", "system", "df" },
@@ -66,11 +81,13 @@ pub fn main(init: std.process.Init) !void {
             \\
             \\usage:
             \\  dev-cache-clean scan [path] [--days N]   (default: cwd, 30 days)
+            \\  dev-cache-clean global                   (package managers, AI agents, editors, Xcode)
             \\  dev-cache-clean docker
             \\
         , .{});
         return;
     }
+    if (std.mem.eql(u8, args[1], "global")) return cmdGlobal(alloc, out);
     if (std.mem.eql(u8, args[1], "docker")) return cmdDocker(alloc, io, out);
     if (std.mem.eql(u8, args[1], "scan")) {
         var root: []const u8 = ".";

@@ -2,6 +2,7 @@
 const std = @import("std");
 const walker = @import("walker.zig");
 const tg = @import("targets.zig");
+const catalog = @import("catalog.zig");
 
 pub const Item = struct {
     path: []const u8,
@@ -41,4 +42,44 @@ pub fn idleDays(item: Item) i128 {
     _ = std.c.clock_gettime(.REALTIME, &ts);
     const now: i128 = @as(i128, ts.sec) * std.time.ns_per_s + ts.nsec;
     return @divTrunc(now - item.last_used, tg.ns_per_day);
+}
+
+pub const GlobalItem = struct {
+    entry: catalog.Entry,
+    path: []const u8,
+    size: u64,
+};
+
+fn lessGlobalBySize(_: void, a: GlobalItem, b: GlobalItem) bool {
+    return a.size > b.size;
+}
+
+/// Sizes every catalog entry that exists under the home directory, largest first. Empty ones are dropped.
+pub fn scanGlobal(alloc: std.mem.Allocator) ![]GlobalItem {
+    const home = std.mem.span(std.c.getenv("HOME") orelse return error.NoHome);
+
+    var paths: std.ArrayList([]const u8) = .empty;
+    var idx: std.ArrayList(usize) = .empty;
+    for (catalog.entries, 0..) |e, i| {
+        const full = try std.fs.path.join(alloc, &.{ home, e.path });
+        const z = try alloc.allocSentinel(u8, full.len, 0);
+        @memcpy(z, full);
+        if (std.c.access(z, 0) != 0) continue;
+        try paths.append(alloc, full);
+        try idx.append(alloc, i);
+    }
+
+    const totals = try alloc.alloc(std.atomic.Value(u64), paths.items.len);
+    for (totals) |*t| t.* = std.atomic.Value(u64).init(0);
+    var pool: walker.Pool = .{};
+    try pool.sizePaths(paths.items, totals);
+
+    var out: std.ArrayList(GlobalItem) = .empty;
+    for (paths.items, idx.items, totals) |p, i, *t| {
+        const size = t.load(.monotonic);
+        if (size == 0) continue;
+        try out.append(alloc, .{ .entry = catalog.entries[i], .path = p, .size = size });
+    }
+    std.mem.sort(GlobalItem, out.items, {}, lessGlobalBySize);
+    return out.items;
 }
