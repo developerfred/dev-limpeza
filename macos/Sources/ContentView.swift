@@ -4,7 +4,7 @@ import AppKit
 struct ContentView: View {
     @ObservedObject var model: Model
     @ObservedObject var docker: DockerModel
-    @State private var confirming = false
+    @State private var pending: RemoveMode?
     @State private var tab = 0
 
     var body: some View {
@@ -12,12 +12,15 @@ struct ContentView: View {
             header
             Picker("", selection: $tab) {
                 Text("Dev caches").tag(0)
-                Text("Docker").tag(1)
+                Text("System").tag(1)
+                Text("Docker").tag(2)
             }
             .pickerStyle(.segmented).labelsHidden()
             Divider()
-            if tab == 1 {
+            if tab == 2 {
                 DockerView(docker: docker).frame(minHeight: 200, alignment: .top)
+            } else if tab == 1 {
+                SystemView(model: model)
             } else if model.items.isEmpty {
                 Text(model.scanning ? "Scanning…" : "No caches found.")
                     .foregroundStyle(.secondary)
@@ -30,18 +33,28 @@ struct ContentView: View {
                 }
                 .frame(height: 300)
             }
-            Divider()
-            if tab == 0 { footer }
+            if tab == 0 {
+                Divider()
+                footer
+            }
         }
         .padding(14)
         .frame(width: 520)
         .confirmationDialog(
-            "Move \(model.selection.count) caches (\(Model.format(model.selectedBytes))) to the Trash?",
-            isPresented: $confirming
-        ) {
-            Button("Move to Trash", role: .destructive) { Task { await model.trashSelected() } }
-        } message: {
-            Text("You can restore them from the Trash.")
+            pending == .permanent
+                ? "Permanently delete \(model.selection.count) caches (\(Model.format(model.selectedBytes)))?"
+                : "Move \(model.selection.count) caches (\(Model.format(model.selectedBytes))) to the Trash?",
+            isPresented: Binding(get: { pending != nil }, set: { if !$0 { pending = nil } }),
+            presenting: pending
+        ) { mode in
+            Button(mode == .permanent ? "Delete permanently" : "Move to Trash",
+                   role: mode == .permanent ? .destructive : nil) {
+                Task { await model.removeSelected(mode) }
+            }
+        } message: { mode in
+            Text(mode == .permanent
+                 ? "This cannot be undone. Nothing goes to the Trash."
+                 : "You can restore them from the Trash. Space is freed when you empty the Trash.")
         }
     }
 
@@ -91,8 +104,10 @@ struct ContentView: View {
                 Button("Select stale") { model.selectStale() }
                 Button("Rescan") { Task { await model.scan() } }.disabled(model.scanning)
                 Spacer()
-                Button("Move to Trash (\(model.selection.count))", role: .destructive) { confirming = true }
-                    .disabled(model.selection.isEmpty)
+                Button("Move to Trash (\(model.selection.count))") { pending = .trash }
+                    .disabled(model.selection.isEmpty || model.removing)
+                Button("Delete now…", role: .destructive) { pending = .permanent }
+                    .disabled(model.selection.isEmpty || model.removing)
                 Button("Quit") { NSApplication.shared.terminate(nil) }
             }
         }

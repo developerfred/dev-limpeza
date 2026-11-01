@@ -108,7 +108,8 @@ pub const Pool = struct {
 
     /// Starts one worker per CPU and returns when every queued job is done.
     fn run(self: *Pool) !void {
-        const n = @max(2, std.Thread.getCpuCount() catch 4);
+        var n = @max(2, std.Thread.getCpuCount() catch 4);
+        if (std.c.getenv("DCC_THREADS")) |v| n = std.fmt.parseInt(usize, std.mem.span(v), 10) catch n;
         const threads = try alloc.alloc(std.Thread, n);
         defer alloc.free(threads);
         var started: usize = 0;
