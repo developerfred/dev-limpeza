@@ -36,6 +36,7 @@ jobs:
       - name: Cross-compile every CLI target
         run: |
           for t in x86_64-linux-musl aarch64-linux-musl x86_64-windows-gnu aarch64-windows-gnu; do
+            mkdir -p "dist/$t"
             zig build-exe src/main.zig -O ReleaseSafe -target "$t" -femit-bin="dist/$t/dev-cache-clean"
           done
       - name: Smoke test the Linux binary
