@@ -5,8 +5,6 @@ struct SystemView: View {
     @ObservedObject var model: Model
     @State private var pending: RemoveMode?
 
-    private var includesCareful: Bool { model.globalSelectedItems.contains { $0.isCareful } }
-
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack {
@@ -54,8 +52,10 @@ struct SystemView: View {
 
     private func detail(_ mode: RemoveMode) -> String {
         var s = mode == .permanent ? "This cannot be undone. Nothing goes to the Trash." : "You can restore them from the Trash."
-        if includesCareful {
-            s += " Your selection includes data you may want to keep (such as conversation history). Close the tools that use it first."
+        let careful = model.globalSelectedItems.filter(\.isCareful).map { "\($0.tool) \($0.name)" }
+        if !careful.isEmpty {
+            s += " Includes data you may want to keep: " + careful.joined(separator: ", ")
+                + ". Close the tools that use it first."
         }
         return s
     }

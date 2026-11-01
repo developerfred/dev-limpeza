@@ -5,7 +5,13 @@ struct ContentView: View {
     @ObservedObject var model: Model
     @ObservedObject var docker: DockerModel
     @State private var pending: RemoveMode?
-    @State private var tab = 0
+    @State private var tab: Int
+
+    init(model: Model, docker: DockerModel, initialTab: Int = 0) {
+        _model = ObservedObject(wrappedValue: model)
+        _docker = ObservedObject(wrappedValue: docker)
+        _tab = State(initialValue: initialTab)
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
@@ -65,14 +71,16 @@ struct ContentView: View {
                 Spacer()
                 if model.scanning { ProgressView().controlSize(.small) }
             }
-            Text("\(Model.format(model.staleBytes)) reclaimable in \(model.staleItems.count) caches unused for \(model.staleDays)+ days")
-                .font(.subheadline).foregroundStyle(.secondary)
-            HStack {
-                Text(model.root).font(.caption).lineLimit(1).truncationMode(.head)
-                Spacer()
-                Button("Choose…") { chooseFolder() }.controlSize(.small)
-                Stepper("\(model.staleDays)d", value: $model.staleDays, in: 1...365)
-                    .controlSize(.small).fixedSize()
+            if tab == 0 {
+                Text("\(Model.format(model.staleBytes)) reclaimable in \(model.staleItems.count) caches unused for \(model.staleDays)+ days")
+                    .font(.subheadline).foregroundStyle(.secondary)
+                HStack {
+                    Text(model.root).font(.caption).lineLimit(1).truncationMode(.head)
+                    Spacer()
+                    Button("Choose…") { chooseFolder() }.controlSize(.small)
+                    Stepper("\(model.staleDays)d", value: $model.staleDays, in: 1...365)
+                        .controlSize(.small).fixedSize()
+                }
             }
         }
     }

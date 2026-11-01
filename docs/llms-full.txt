@@ -1,0 +1,78 @@
+# Dev Cache Clean
+
+Dev Cache Clean is a free, open source (MIT) macOS app that finds development caches taking up disk space, shows what each one is, what you lose if you remove it and a risk level, and cleans them. The core is written in Zig and exposes a small C API; the interface is SwiftUI (a window, a Dock icon and a menu bar item). Repository: https://github.com/developerfred/dev-limpeza . Website: https://developerfred.github.io/dev-limpeza/
+
+Status: early (0.1). It has been checked against find and du on a real machine, but it is not notarized and has no installer. It runs on macOS only (macOS 15 or later).
+
+## What it finds
+
+The app has three tabs.
+
+1. Dev caches. Per-project caches found by walking a folder you choose (default ~/development, or the home folder if that does not exist). A directory counts only when its marker file sits next to it:
+   - node_modules (marker: package.json)
+   - .next (marker: package.json)
+   - target (marker: Cargo.toml, Rust)
+   - .zig-cache (marker: build.zig)
+   - Pods (marker: Podfile)
+   - .venv and __pycache__ (no marker)
+   The walk goes at most 8 levels deep, does not follow symbolic links, and never enters .git, Library, .Trash, .cache or Applications. Each result shows how many days the project that owns it has been idle (age of the newest file in that project). "Select stale" selects caches idle for the chosen number of days (default 30).
+2. System. 40 known global locations under the home directory, each with a tool, name, description, category, risk and an "If removed" line. Only locations that exist and are not empty are shown, largest first.
+   - AI coding agents: Claude Code, Codex CLI, opencode (conversations, file checkpoints, logs, telemetry queues, caches).
+   - Editors: VS Code and Cursor (cached data, web cache, logs).
+   - Package managers and toolchains: npm, Yarn, pnpm, Bun, Cargo, Gradle, Maven, Homebrew, pip, uv, Go, CocoaPods, Playwright, Puppeteer.
+   - Xcode and simulators: DerivedData, iOS DeviceSupport, Archives, simulator caches.
+   The complete list with paths: https://github.com/developerfred/dev-limpeza/blob/main/docs/CATALOG.md
+3. Docker. Images, stopped containers, volumes and build cache, with reclaimable sizes from "docker system df". Works with Docker Desktop and OrbStack; if no Docker CLI is found or the daemon is not running, the tab says so.
+
+Categories: cache (rebuilt automatically), build_output (rebuilt by the next build), logs, tracking (telemetry or usage statistics on disk), history (conversations, sessions or other work you may want to keep). Risks: safe (regenerated on demand, costs only time or bandwidth) or careful (you may lose something you want).
+
+## How to install and build
+
+There is no installer. Requirements: macOS 15+, Xcode command line tools, Zig 0.17.
+
+    git clone https://github.com/developerfred/dev-limpeza.git
+    cd dev-limpeza
+    ./make-app.sh && open app/DevCacheClean.app
+    ./build.sh
+    zig-out/bin/dev-cache-clean scan ~/development --days 30
+    zig-out/bin/dev-cache-clean global
+    zig-out/bin/dev-cache-clean docker
+
+make-app.sh builds the Zig core and the SwiftUI app into app/DevCacheClean.app. build.sh builds only the command-line tool. Set ZIG=/path/to/zig to use a specific Zig binary.
+
+## What is safe to delete
+
+- Safe entries are regenerated on demand and cost only time or bandwidth: for example npm, Yarn, pnpm, Bun, pip, uv, Go, Cargo and Gradle caches, Homebrew downloads, CocoaPods, Playwright and Puppeteer browsers, VS Code and Cursor caches and logs, Xcode DerivedData and iOS DeviceSupport, simulator caches, Claude Code shell snapshots, telemetry, analytics cache, debug logs and CLI cache, Codex and opencode logs, and opencode cache.
+- Careful entries lose something you may want back, are never pre-selected, and the confirmation warns when your selection includes them. There are six: Claude Code conversations, Claude Code file checkpoints, Codex CLI sessions, opencode sessions and messages, Xcode Archives (needed to symbolicate crashes or re-submit builds) and Maven's local repository (may hold locally installed artifacts that exist nowhere else).
+- The System tab's "Select safe" button skips every careful and every history item.
+- Close the tools that use the data before removing it.
+- Project caches (node_modules, target, .venv and so on) can be rebuilt by installing or building the project again.
+
+## What is not listed
+
+Credentials, tool settings and source code are never part of the catalog and cannot be selected. Only items returned by a scan can be acted on, and symbolic links are refused.
+
+## Safety guarantees
+
+- "Move to Trash" (Dev caches and System tabs) moves items to the macOS Trash. You can restore them; space is freed when you empty the Trash.
+- "Delete now" (Dev caches and System tabs) deletes permanently, does not use the Trash, and always asks for confirmation.
+- Docker cleanups are permanent, always ask first and explain what is lost. They run: image prune -a -f, container prune -f, volume prune -f (data inside volumes is lost) and builder prune -a -f.
+- The app makes no network requests and has no telemetry.
+- The Zig library never deletes anything; removal is done by the app.
+- The app rescans every 6 hours while running and may show a notification (at most once per 24 hours) when more than 1 GiB sits in caches idle for the chosen number of days.
+
+## Speed
+
+Measured on the author's ~/development (about 550 caches, 34 GB, Apple silicon): 4 min 23 s with one stat per file on one thread, 1 min 30 s with parallel sizing, about 20 s with parallel discovery and sizing using getattrlistbulk. Results were compared with find (same set of caches) and du (sizes within rounding). Other machines will differ.
+
+## Limitations
+
+- Early (0.1), not notarized, no installer: build from source with Zig 0.17.
+- macOS only (the scanner uses getattrlistbulk); macOS 15 or later.
+- Sizes are allocated bytes on disk. pnpm and Bun stores are hard-linked or cloned into projects, so freed space can be smaller than shown.
+- The catalog covers only the 40 locations and 7 project cache types listed above; other tools are not detected.
+- Docker support needs a Docker CLI (Docker Desktop or OrbStack) and a running daemon.
+
+## License
+
+MIT. https://github.com/developerfred/dev-limpeza/blob/main/LICENSE

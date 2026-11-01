@@ -52,6 +52,11 @@ final class Model: ObservableObject {
     private static let cacheNames: Set<String> =
         ["node_modules", ".next", "target", ".zig-cache", ".venv", "__pycache__", "Pods"]
 
+    /// Marker file that must still sit next to the cache (mirrors src/targets.zig); nil = no check.
+    private static let markers: [String: String] =
+        ["node_modules": "package.json", ".next": "package.json", "target": "Cargo.toml",
+         ".zig-cache": "build.zig", "Pods": "Podfile"]
+
     init() {
         let home = FileManager.default.homeDirectoryForCurrentUser.path
         let dev = home + "/development"
@@ -143,7 +148,15 @@ final class Model: ObservableObject {
     private func isSafe(_ path: String, allowed: Set<String>, requireCacheName: Bool) -> Bool {
         guard path.hasPrefix("/"), !path.contains("/../"), !path.hasSuffix("/.."), allowed.contains(path) else { return false }
         let url = URL(fileURLWithPath: path)
-        if requireCacheName && !Self.cacheNames.contains(url.lastPathComponent) { return false }
+        if requireCacheName {
+            let name = url.lastPathComponent
+            guard Self.cacheNames.contains(name) else { return false }
+            // The scan may be hours old: make sure the project the cache belongs to is still there.
+            if let marker = Self.markers[name],
+               !FileManager.default.fileExists(atPath: url.deletingLastPathComponent().appendingPathComponent(marker).path) {
+                return false
+            }
+        }
         let isLink = (try? url.resourceValues(forKeys: [.isSymbolicLinkKey]))?.isSymbolicLink ?? true
         return !isLink
     }

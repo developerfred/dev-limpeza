@@ -9,7 +9,14 @@ struct DevCacheCleanApp: App {
         // Main window: opens at launch and from the Dock, so the app is easy to find.
         Window("Dev Cache Clean", id: "main") {
             ContentView(model: model, docker: docker)
-                .task { model.start() }
+                .task {
+                    if let dir = Screenshots.directory {
+                        try? await Task.sleep(for: .seconds(1))
+                        Screenshots.run(into: dir)
+                        exit(0)
+                    }
+                    model.start()
+                }
                 .onAppear { NSApplication.shared.activate(ignoringOtherApps: true) }
         }
         .windowResizability(.contentSize)

@@ -4,3 +4,5 @@ zig-cache/
 app/
 *.png
 .DS_Store
+!docs/img/*.png
+.claude/worktrees/

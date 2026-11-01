@@ -37,7 +37,7 @@ pub const Entry = struct {
 
 pub const entries = [_]Entry{
     // ---- AI coding agents
-    .{ .id = "claude-projects", .tool = "Claude Code", .name = "Conversations", .path = ".claude/projects", .category = .history, .risk = .careful, .description = "Transcripts of every Claude Code session, grouped by project.", .loses = "Past conversations; they can no longer be resumed." },
+    .{ .id = "claude-projects", .tool = "Claude Code", .name = "Conversations", .path = ".claude/projects", .category = .history, .risk = .careful, .description = "Transcripts of every Claude Code session, grouped by project.", .loses = "Past conversations and any saved memory notes for each project; they can no longer be resumed." },
     .{ .id = "claude-file-history", .tool = "Claude Code", .name = "File checkpoints", .path = ".claude/file-history", .category = .history, .risk = .careful, .description = "Copies of files Claude Code saved so edits can be rewound.", .loses = "The ability to rewind edits from past sessions." },
     .{ .id = "claude-shell-snapshots", .tool = "Claude Code", .name = "Shell snapshots", .path = ".claude/shell-snapshots", .category = .cache, .risk = .safe, .description = "Snapshots of your shell environment used to run commands.", .loses = "Nothing; recreated for each session." },
     .{ .id = "claude-telemetry", .tool = "Claude Code", .name = "Telemetry queue", .path = ".claude/telemetry", .category = .tracking, .risk = .safe, .description = "Usage events queued for upload.", .loses = "Usage events that were not sent yet." },

@@ -1,0 +1,270 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dev Cache Clean: find and clean developer caches on Mac</title>
+<meta name="description" content="Free, open source macOS app with a fast Zig core. Find node_modules, Xcode, Docker and AI agent caches eating your disk, then clean them safely via the Trash.">
+<link rel="canonical" href="https://developerfred.github.io/dev-limpeza/">
+<meta name="color-scheme" content="light dark">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Dev Cache Clean">
+<meta property="og:title" content="Dev Cache Clean: find and clean developer caches on Mac">
+<meta property="og:description" content="See exactly which development caches eat your disk and clean them safely. Open source macOS app, no network requests.">
+<meta property="og:url" content="https://developerfred.github.io/dev-limpeza/">
+<meta property="og:image" content="https://developerfred.github.io/dev-limpeza/img/dev-caches.png">
+<meta property="og:image:alt" content="Dev Cache Clean window listing node_modules and other caches with sizes (example data)">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Dev Cache Clean: find and clean developer caches on Mac">
+<meta name="twitter:description" content="See exactly which development caches eat your disk and clean them safely. Open source macOS app, no network requests.">
+<meta name="twitter:image" content="https://developerfred.github.io/dev-limpeza/img/dev-caches.png">
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  "name": "Dev Cache Clean",
+  "description": "A native macOS app with a Zig core that finds development caches (node_modules, Xcode, Docker, AI coding agent data and more), explains what each one is and moves them to the Trash.",
+  "applicationCategory": "DeveloperApplication",
+  "operatingSystem": "macOS",
+  "license": "https://opensource.org/licenses/MIT",
+  "codeRepository": "https://github.com/developerfred/dev-limpeza",
+  "url": "https://developerfred.github.io/dev-limpeza/",
+  "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" }
+}
+</script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": [
+    {
+      "@type": "Question",
+      "name": "Is Dev Cache Clean safe?",
+      "acceptedAnswer": { "@type": "Answer", "text": "Dev caches are moved to the Trash so you can restore them. Only items returned by a scan can be acted on, symbolic links are refused, and credentials, tool settings and source code are never listed. The Delete now button and Docker cleanups are permanent and always ask for confirmation first." }
+    },
+    {
+      "@type": "Question",
+      "name": "Does it phone home?",
+      "acceptedAnswer": { "@type": "Answer", "text": "No. The app makes no network requests and has no telemetry." }
+    },
+    {
+      "@type": "Question",
+      "name": "What does careful mean?",
+      "acceptedAnswer": { "@type": "Answer", "text": "Careful marks data you may want back, such as conversation history, Xcode archives or Maven's local repository. Careful items are never pre-selected and the confirmation warns you when your selection includes them. Safe items are regenerated on demand and cost only time or bandwidth." }
+    },
+    {
+      "@type": "Question",
+      "name": "Why did I free less space than the app showed?",
+      "acceptedAnswer": { "@type": "Answer", "text": "Sizes are allocated bytes on disk. Stores such as pnpm's and Bun's are hard-linked or cloned into projects, so removing them can free less than shown. Space from the Trash is only freed when you empty it." }
+    },
+    {
+      "@type": "Question",
+      "name": "What do I need to run it?",
+      "acceptedAnswer": { "@type": "Answer", "text": "macOS 15 or later, the Xcode command line tools and Zig 0.17. It is not notarized and has no installer yet, so you build it from source with ./make-app.sh." }
+    }
+  ]
+}
+</script>
+<style>
+:root{--bg:#fbfbfa;--fg:#1b1d1f;--muted:#515962;--card:#ffffff;--line:#d9dde1;--accent:#0b5cd5;--accent-fg:#ffffff;--warn:#8a4b00;--code:#eef0f2}
+@media (prefers-color-scheme:dark){:root{--bg:#111315;--fg:#e8eaec;--muted:#a3abb3;--card:#1a1d20;--line:#2e3338;--accent:#7db2ff;--accent-fg:#0b1220;--warn:#f0b35c;--code:#22262a}}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--fg);font:1rem/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}
+a{color:var(--accent)}
+a:focus-visible,summary:focus-visible,.btn:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+.skip{position:absolute;left:-999px;top:0;background:var(--accent);color:var(--accent-fg);padding:.5rem 1rem;z-index:10}
+.skip:focus{left:0}
+.wrap{max-width:62rem;margin:0 auto;padding:0 1rem}
+header.site{border-bottom:1px solid var(--line)}
+header.site .wrap{display:flex;flex-wrap:wrap;gap:.5rem 1.25rem;align-items:center;justify-content:space-between;padding-top:.75rem;padding-bottom:.75rem}
+.brand{font-weight:700;color:var(--fg);text-decoration:none}
+nav ul{display:flex;flex-wrap:wrap;gap:.25rem 1rem;list-style:none;margin:0;padding:0}
+.hero{padding:3rem 0 2rem}
+h1{font-size:clamp(1.9rem,5vw,3rem);line-height:1.15;margin:0 0 1rem}
+h2{font-size:1.6rem;line-height:1.25;margin:0 0 .75rem}
+h3{font-size:1.1rem;margin:1.25rem 0 .25rem}
+.lead{font-size:1.2rem;color:var(--muted);max-width:42rem}
+.btn{display:inline-block;padding:.65rem 1.1rem;border-radius:.5rem;border:1px solid var(--accent);background:var(--accent);color:var(--accent-fg);text-decoration:none;font-weight:600;margin:.25rem .5rem .25rem 0}
+.btn.alt{background:transparent;color:var(--accent)}
+.note{color:var(--muted);font-size:.95rem}
+section{padding:2rem 0;border-top:1px solid var(--line)}
+.grid{display:grid;gap:1rem;grid-template-columns:repeat(auto-fit,minmax(15rem,1fr))}
+.card{background:var(--card);border:1px solid var(--line);border-radius:.75rem;padding:1rem 1.1rem}
+.card h3{margin-top:0}
+.card ul{margin:.25rem 0 0;padding-left:1.1rem}
+figure{margin:0}
+figure img{display:block;max-width:100%;height:auto;border:1px solid var(--line);border-radius:.5rem;background:var(--card)}
+figcaption{color:var(--muted);font-size:.9rem;margin-top:.4rem}
+table{border-collapse:collapse;width:100%;background:var(--card)}
+th,td{border:1px solid var(--line);padding:.5rem .7rem;text-align:left;vertical-align:top}
+th{background:var(--code)}
+.scroll{overflow-x:auto}
+pre{background:var(--code);padding:1rem;border-radius:.5rem;overflow-x:auto;font-size:.9rem;line-height:1.5}
+code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:.92em}
+:not(pre)>code{background:var(--code);padding:.1em .35em;border-radius:.25rem}
+details{background:var(--card);border:1px solid var(--line);border-radius:.5rem;margin:.5rem 0;padding:.25rem 1rem}
+summary{cursor:pointer;font-weight:600;padding:.6rem 0}
+.warn{color:var(--warn)}
+footer{border-top:1px solid var(--line);padding:1.5rem 0 2.5rem;color:var(--muted);font-size:.95rem}
+</style>
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+<header class="site">
+  <div class="wrap">
+    <a class="brand" href="./">Dev Cache Clean</a>
+    <nav aria-label="Page sections">
+      <ul>
+        <li><a href="#finds">What it finds</a></li>
+        <li><a href="#safety">Safety</a></li>
+        <li><a href="#speed">Speed</a></li>
+        <li><a href="#build">Build</a></li>
+        <li><a href="#faq">FAQ</a></li>
+        <li><a href="https://github.com/developerfred/dev-limpeza">GitHub</a></li>
+      </ul>
+    </nav>
+  </div>
+</header>
+<main id="main">
+  <div class="wrap">
+    <section class="hero" aria-labelledby="top" style="border-top:0">
+      <h1 id="top">Find the developer caches silently eating your Mac's disk, and clean them safely</h1>
+      <p class="lead">Dev Cache Clean is a free, open source macOS app with a fast Zig core that shows exactly what each cache is, what you lose if you remove it, and moves it to the Trash.</p>
+      <p>
+        <a class="btn" href="#build">Build from source</a>
+        <a class="btn alt" href="https://github.com/developerfred/dev-limpeza">View on GitHub</a>
+      </p>
+      <p class="note">Early (0.1): macOS only, not notarized, no installer yet. Needs Zig 0.17 to build. MIT licensed.</p>
+      <figure>
+        <img src="img/dev-caches.png" width="1040" height="984" loading="lazy" alt="Dev Cache Clean window on the Dev caches tab, listing node_modules, target and other project caches with size and idle days, plus Select stale and Move to Trash buttons">
+        <figcaption>Example data, not a real machine.</figcaption>
+      </figure>
+    </section>
+
+    <section id="finds" aria-labelledby="finds-h">
+      <h2 id="finds-h">What it finds</h2>
+      <div class="grid">
+        <div class="card">
+          <h3>Project caches</h3>
+          <p>Found by walking a folder you choose (default <code>~/development</code>). Each shows how many days its project has been idle.</p>
+          <ul>
+            <li><code>node_modules</code>, <code>.next</code> (next to <code>package.json</code>)</li>
+            <li><code>target</code> (next to <code>Cargo.toml</code>)</li>
+            <li><code>.zig-cache</code> (next to <code>build.zig</code>)</li>
+            <li><code>Pods</code> (next to <code>Podfile</code>)</li>
+            <li><code>.venv</code>, <code>__pycache__</code></li>
+          </ul>
+        </div>
+        <div class="card">
+          <h3>Global tool data</h3>
+          <p>40 known locations, each labelled with what it is, what you lose and a risk level.</p>
+          <ul>
+            <li>AI coding agents: Claude Code, Codex CLI, opencode</li>
+            <li>Editors: VS Code, Cursor</li>
+            <li>npm, Yarn, pnpm, Bun, Cargo, Gradle, Maven, Homebrew, pip, uv, Go, CocoaPods, Playwright, Puppeteer</li>
+            <li>Xcode: DerivedData, iOS DeviceSupport, simulator caches, archives</li>
+          </ul>
+        </div>
+        <div class="card">
+          <h3>Docker</h3>
+          <p>Images, stopped containers, volumes and build cache, with the reclaimable size from <code>docker system df</code>. Works with Docker Desktop and OrbStack.</p>
+        </div>
+      </div>
+      <p>The app has three tabs: Dev caches, System and Docker. Every global entry is documented in the <a href="https://github.com/developerfred/dev-limpeza/blob/main/docs/CATALOG.md">full catalog</a>. Credentials, settings and source code are never listed.</p>
+
+      <h3>Screenshots</h3>
+      <div class="grid">
+        <figure>
+          <img src="img/system.png" width="1040" height="924" loading="lazy" alt="System tab listing global tool locations such as the Bun, pnpm and Go caches and AI-agent conversation history, each with a category chip, a safe or careful chip and an 'If removed' line">
+          <figcaption>System tab. Example data.</figcaption>
+        </figure>
+        <figure>
+          <img src="img/docker.png" width="1040" height="604" loading="lazy" alt="Docker tab showing images, containers, volumes and build cache with reclaimable sizes and a Clean button for each">
+          <figcaption>Docker tab. Example data.</figcaption>
+        </figure>
+      </div>
+    </section>
+
+    <section id="safety" aria-labelledby="safety-h">
+      <h2 id="safety-h">Safety</h2>
+      <div class="scroll">
+      <table>
+        <caption class="note" style="text-align:left;padding-bottom:.4rem">How each action behaves</caption>
+        <thead><tr><th scope="col">Action</th><th scope="col">Where</th><th scope="col">Reversible?</th></tr></thead>
+        <tbody>
+          <tr><th scope="row">Move to Trash</th><td>Dev caches and System tabs</td><td>Yes. Restore from the Trash. Space is freed when you empty it.</td></tr>
+          <tr><th scope="row">Delete now…</th><td>Dev caches and System tabs</td><td class="warn">No. Permanent, nothing goes to the Trash. Always asks for confirmation.</td></tr>
+          <tr><th scope="row">Docker clean</th><td>Docker tab</td><td class="warn">No. Permanent, always asks first and explains what is lost.</td></tr>
+        </tbody>
+      </table>
+      </div>
+      <ul>
+        <li>Only items returned by a scan can be acted on; symbolic links are refused.</li>
+        <li>Credentials, tool settings and source code are never part of the catalog.</li>
+        <li>Items marked <strong>careful</strong> (conversation history and anything you may want back) are never pre-selected.</li>
+        <li>The app makes no network requests.</li>
+      </ul>
+    </section>
+
+    <section id="speed" aria-labelledby="speed-h">
+      <h2 id="speed-h">Speed</h2>
+      <p>Measured on the author's <code>~/development</code> (about 550 caches, 34 GB, Apple silicon):</p>
+      <div class="scroll">
+      <table>
+        <thead><tr><th scope="col">Version</th><th scope="col">Time</th></tr></thead>
+        <tbody>
+          <tr><td>One <code>stat</code> per file, one thread</td><td>4 min 23 s</td></tr>
+          <tr><td>Parallel sizing</td><td>1 min 30 s</td></tr>
+          <tr><td>Parallel discovery and sizing with <code>getattrlistbulk</code></td><td>about 20 s</td></tr>
+        </tbody>
+      </table>
+      </div>
+      <p class="note">Results were compared with <code>find</code> (same set of caches) and <code>du</code> (sizes within rounding). Sizes are allocated bytes on disk; hard-linked stores such as pnpm's may free less than they show. Your numbers will differ.</p>
+    </section>
+
+    <section id="build" aria-labelledby="build-h">
+      <h2 id="build-h">Build and run</h2>
+      <p>Requirements: macOS 15+, Xcode command line tools, <a href="https://ziglang.org/download/">Zig 0.17</a>. There is no installer and the app is not notarized, so you build it yourself.</p>
+<pre><code>git clone https://github.com/developerfred/dev-limpeza.git
+cd dev-limpeza
+./make-app.sh &amp;&amp; open app/DevCacheClean.app   # window, Dock icon and menu bar item
+./build.sh                                     # CLI only
+zig-out/bin/dev-cache-clean scan ~/development --days 30
+zig-out/bin/dev-cache-clean global
+zig-out/bin/dev-cache-clean docker</code></pre>
+      <p>Set <code>ZIG=/path/to/zig</code> to use a specific Zig binary.</p>
+    </section>
+
+    <section id="faq" aria-labelledby="faq-h">
+      <h2 id="faq-h">FAQ</h2>
+      <details>
+        <summary>Is Dev Cache Clean safe?</summary>
+        <p>Dev caches are moved to the Trash so you can restore them. Only items returned by a scan can be acted on, symbolic links are refused, and credentials, tool settings and source code are never listed. The Delete now button and Docker cleanups are permanent and always ask for confirmation first.</p>
+      </details>
+      <details>
+        <summary>Does it phone home?</summary>
+        <p>No. The app makes no network requests and has no telemetry.</p>
+      </details>
+      <details>
+        <summary>What does "careful" mean?</summary>
+        <p>Careful marks data you may want back, such as conversation history, Xcode archives or Maven's local repository. Careful items are never pre-selected and the confirmation warns you when your selection includes them. Safe items are regenerated on demand and cost only time or bandwidth.</p>
+      </details>
+      <details>
+        <summary>Why did I free less space than the app showed?</summary>
+        <p>Sizes are allocated bytes on disk. Stores such as pnpm's and Bun's are hard-linked or cloned into projects, so removing them can free less than shown. Space from the Trash is only freed when you empty it.</p>
+      </details>
+      <details>
+        <summary>What do I need to run it?</summary>
+        <p>macOS 15 or later, the Xcode command line tools and Zig 0.17. It is not notarized and has no installer yet, so you build it from source with <code>./make-app.sh</code>.</p>
+      </details>
+    </section>
+  </div>
+</main>
+<footer>
+  <div class="wrap">
+    <p><a href="https://github.com/developerfred/dev-limpeza">Source on GitHub</a> · <a href="https://github.com/developerfred/dev-limpeza/blob/main/docs/CATALOG.md">Catalog</a> · <a href="https://github.com/developerfred/dev-limpeza/blob/main/docs/ARCHITECTURE.md">Architecture</a> · <a href="https://github.com/developerfred/dev-limpeza/blob/main/CONTRIBUTING.md">Contributing</a> · <a href="llms.txt">llms.txt</a> · MIT License</p>
+  </div>
+</footer>
+</body>
+</html>

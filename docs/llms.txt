@@ -1,0 +1,20 @@
+# Dev Cache Clean
+
+> Free, open source (MIT) macOS app with a Zig core and a SwiftUI shell. It finds development caches (node_modules, target, .venv, Xcode, package manager caches, AI coding agent data, Docker), explains what each one is and what you lose by removing it, and moves them to the Trash. It makes no network requests. Early (0.1): macOS only, not notarized, build from source with Zig 0.17.
+
+## Docs
+
+- [README](https://raw.githubusercontent.com/developerfred/dev-limpeza/main/README.md): what it finds, safety, measured speed, build instructions
+- [Catalog](https://raw.githubusercontent.com/developerfred/dev-limpeza/main/docs/CATALOG.md): every global location and project cache with category, risk and what is lost
+- [Architecture](https://raw.githubusercontent.com/developerfred/dev-limpeza/main/docs/ARCHITECTURE.md): Zig core, C ABI, SwiftUI app, safety rules
+- [Contributing](https://raw.githubusercontent.com/developerfred/dev-limpeza/main/CONTRIBUTING.md): build, verification steps, how to add a cache type
+
+## Source
+
+- [src/catalog.zig](https://raw.githubusercontent.com/developerfred/dev-limpeza/main/src/catalog.zig): the 40 known global locations with category and risk
+
+## Optional
+
+- [Full answer-ready text](https://developerfred.github.io/dev-limpeza/llms-full.txt)
+- [Website](https://developerfred.github.io/dev-limpeza/)
+- [Repository](https://github.com/developerfred/dev-limpeza)

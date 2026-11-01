@@ -1,9 +1,9 @@
 # Dev Cache Clean
 
 **Find the development caches that are silently eating your disk, see exactly what each one is, and clean them safely.**
-A native macOS app with a fast Zig core. Open source (MIT).
+A native macOS app with a fast Zig core and three tabs: Dev caches, System (global tool data) and Docker. Open source (MIT). Website: <https://developerfred.github.io/dev-limpeza/>
 
-> **Status: early (0.1).** It runs and has been checked against `find` and `du` on a real machine, but it is not notarized and has no installer yet. Build it from source (below).
+> **Status: early (0.1).** It runs and has been checked against `find` and `du` on a real machine, but it is not notarized, has no installer yet and runs on macOS only. Build it from source with Zig 0.17 (below).
 
 ## What it finds
 
@@ -27,13 +27,25 @@ Each one shows how many days the project it belongs to has been idle, so you can
 - **Package managers and toolchains:** npm, Yarn, pnpm, Bun, Cargo, Gradle, Maven, Homebrew, pip, uv, Go, CocoaPods, Playwright, Puppeteer.
 - **Xcode:** DerivedData, iOS DeviceSupport, simulator caches, archives.
 
-Every entry has a category (`cache`, `build_output`, `logs`, `tracking`, `history`) and a risk (`safe` or `careful`). Conversation history and anything you might want back is `careful` and never pre-selected. Credentials, settings and source code are never listed. See [docs/CATALOG.md](docs/CATALOG.md) when it lands, or [src/catalog.zig](src/catalog.zig).
+Every entry has a category (`cache`, `build_output`, `logs`, `tracking`, `history`) and a risk (`safe` or `careful`). Conversation history and anything you might want back is `careful` and never pre-selected. Credentials, settings and source code are never listed. See the full list in [docs/CATALOG.md](docs/CATALOG.md) (generated from [src/catalog.zig](src/catalog.zig)).
 
 **Docker** — images, stopped containers, volumes and build cache, with the reclaimable size from `docker system df` and a confirmation that explains what is lost. Works with Docker Desktop and OrbStack.
 
+## Screenshots
+
+![Dev caches tab listing project caches with size and idle days](docs/img/dev-caches.png)
+*Dev caches tab. Example data.*
+
+![System tab listing global tool locations with category, risk and what is lost](docs/img/system.png)
+*System tab. Example data.*
+
+![Docker tab with reclaimable sizes per category](docs/img/docker.png)
+*Docker tab. Example data.*
+
 ## Safety
 
-- Dev caches are moved to the **Trash**, not deleted. You can restore them.
+- Dev caches are moved to the **Trash** by default. You can restore them.
+- **Delete now** (next to Move to Trash) deletes permanently, skips the Trash and always asks for confirmation.
 - Docker cleanups are **permanent** and always ask first.
 - Only items returned by a scan can be acted on.
 - The app makes **no network requests**.

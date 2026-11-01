@@ -80,7 +80,7 @@ final class DockerModel: ObservableObject {
                         "Removes all stopped containers.")
             case "Local Volumes":
                 spec = ("Unused volumes", ["volume", "prune", "-f"],
-                        "Removes unused volumes. Data inside them is permanently lost.")
+                        "Removes volumes no container uses, including volumes of stopped containers. Their data is permanently lost.")
             case "Build Cache":
                 spec = ("Build cache", ["builder", "prune", "-a", "-f"],
                         "Removes the build cache. The next builds will be slower.")
@@ -114,6 +114,9 @@ final class DockerModel: ObservableObject {
         p.arguments = args
         var env = ProcessInfo.processInfo.environment
         env["PATH"] = (env["PATH"] ?? "") + ":/usr/local/bin:/opt/homebrew/bin"
+        // Prunes must only ever hit the local default daemon, never a remote one inherited from the shell.
+        env.removeValue(forKey: "DOCKER_HOST")
+        env.removeValue(forKey: "DOCKER_CONTEXT")
         p.environment = env
         let out = Pipe(), err = Pipe()
         p.standardOutput = out
