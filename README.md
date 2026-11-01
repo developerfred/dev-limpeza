@@ -1,4 +1,8 @@
-# Dev Cache Clean
+<p align="center">
+  <img src="docs/img/logo.svg" width="128" height="128" alt="Dev Cache Clean logo: a blue cube lifted off a green one">
+</p>
+
+<h1 align="center">Dev Cache Clean</h1>
 
 **Find the development caches that are silently eating your disk, see exactly what each one is, and clean them safely.**
 A native macOS app with a fast Zig core and three tabs: Dev caches, System (global tool data) and Docker. Open source (MIT). Website: <https://developerfred.github.io/dev-limpeza/>

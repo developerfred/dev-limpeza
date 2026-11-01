@@ -11,5 +11,7 @@ swiftc -O -parse-as-library -swift-version 5 -target arm64-apple-macos15.0 \
   macos/Sources/*.swift zig-out/lib/dcc.o \
   -o "$APP/Contents/MacOS/DevCacheClean"
 cp macos/Info.plist "$APP/Contents/Info.plist"
+mkdir -p "$APP/Contents/Resources"
+[ -f macos/Resources/AppIcon.icns ] && cp macos/Resources/AppIcon.icns "$APP/Contents/Resources/AppIcon.icns"
 codesign --force --sign - "$APP"
 echo "built $APP"

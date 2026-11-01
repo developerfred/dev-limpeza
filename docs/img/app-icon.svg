@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024" role="img">
+  <title>Dev Cache Clean app icon</title>
+  <desc>macOS app icon: a blue and green isometric package cube sliced in two, on a soft light squircle.</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#FFFFFF"/>
+      <stop offset="1" stop-color="#DDE5F0"/>
+    </linearGradient>
+    <linearGradient id="rim" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#FFFFFF" stop-opacity="0.95"/>
+      <stop offset="0.5" stop-color="#FFFFFF" stop-opacity="0"/>
+      <stop offset="1" stop-color="#6B7C93" stop-opacity="0.35"/>
+    </linearGradient>
+  </defs>
+  <rect x="100" y="112" width="824" height="824" rx="185" fill="#0D1117" fill-opacity="0.10"/>
+  <rect x="100" y="104" width="824" height="824" rx="185" fill="#0D1117" fill-opacity="0.10"/>
+  <rect x="100" y="100" width="824" height="824" rx="185" fill="url(#bg)"/>
+  <rect x="101.5" y="101.5" width="821" height="821" rx="183.5" fill="none" stroke="url(#rim)" stroke-width="3"/>
+  <g transform="translate(512 512) scale(2.1) translate(-128 -128)">
+  <g transform="translate(0 9)">
+    <path d="M128 70L222 124L128 178L34 124Z" fill="#7BE096"/>
+    <path d="M34 124L128 178V238L34 184Z" fill="#1A8F40"/>
+    <path d="M222 124V184L128 238V178Z" fill="#34C759"/>
+  </g>
+  <g transform="translate(0 -11)">
+    <path d="M128 18L222 72L128 126L34 72Z" fill="#62B0FF"/>
+    <path d="M34 72L128 126V178L34 124Z" fill="#0A5FD0"/>
+    <path d="M222 72V124L128 178V126Z" fill="#2A84F5"/>
+  </g>
+  </g>
+</svg>

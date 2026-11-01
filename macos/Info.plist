@@ -4,6 +4,7 @@
   <key>CFBundleIdentifier</key><string>dev.cacheclean.app</string>
   <key>CFBundleName</key><string>Dev Cache Clean</string>
   <key>CFBundleExecutable</key><string>DevCacheClean</string>
+  <key>CFBundleIconFile</key><string>AppIcon</string>
   <key>CFBundlePackageType</key><string>APPL</string>
   <key>CFBundleShortVersionString</key><string>0.1.0</string>
   <key>LSMinimumSystemVersion</key><string>13.0</string>

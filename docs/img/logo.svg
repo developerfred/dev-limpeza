@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256" role="img">
+  <title>Dev Cache Clean logo</title>
+  <desc>An isometric package cube sliced in two: the blue lid lifts away from the green base, leaving a gap that suggests cache cleared and space reclaimed.</desc>
+  <g transform="translate(0 9)">
+    <path d="M128 70L222 124L128 178L34 124Z" fill="#7BE096"/>
+    <path d="M34 124L128 178V238L34 184Z" fill="#1A8F40"/>
+    <path d="M222 124V184L128 238V178Z" fill="#34C759"/>
+  </g>
+  <g transform="translate(0 -11)">
+    <path d="M128 18L222 72L128 126L34 72Z" fill="#62B0FF"/>
+    <path d="M34 72L128 126V178L34 124Z" fill="#0A5FD0"/>
+    <path d="M222 72V124L128 178V126Z" fill="#2A84F5"/>
+  </g>
+</svg>
