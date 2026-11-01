@@ -4,7 +4,7 @@ set -e
 cd "$(dirname "$0")"
 ZIG="${ZIG:-zig}"
 mkdir -p zig-out/bin zig-out/lib
-FLAGS="-O ReleaseFast"
+FLAGS="-O ReleaseFast -target aarch64-macos.15.0"
 "$ZIG" build-exe src/main.zig $FLAGS -femit-bin=zig-out/bin/dev-cache-clean
 # Linked as a plain object: Apple ld rejects Zig-built .a archives (members not 8-byte aligned).
 "$ZIG" build-obj src/lib.zig $FLAGS -fcompiler-rt -femit-bin=zig-out/lib/dcc.o
