@@ -109,28 +109,15 @@ final class DockerModel: ObservableObject {
     }
 
     nonisolated static func run(_ exe: String, _ args: [String]) -> (status: Int32, out: String, err: String) {
-        let p = Process()
-        p.executableURL = URL(fileURLWithPath: exe)
-        p.arguments = args
         var env = ProcessInfo.processInfo.environment
         env["PATH"] = (env["PATH"] ?? "") + ":/usr/local/bin:/opt/homebrew/bin"
         // Prunes must only ever hit the local default daemon, never a remote one inherited from the shell.
         env.removeValue(forKey: "DOCKER_HOST")
         env.removeValue(forKey: "DOCKER_CONTEXT")
-        p.environment = env
-        let out = Pipe(), err = Pipe()
-        p.standardOutput = out
-        p.standardError = err
-        do { try p.run() } catch { return (-1, "", "\(error)") }
-        // Drain stderr on a side queue so a chatty child cannot block on a full pipe.
-        var errData = Data()
-        let g = DispatchGroup()
-        g.enter()
-        DispatchQueue.global().async { errData = err.fileHandleForReading.readDataToEndOfFile(); g.leave() }
-        let outData = out.fileHandleForReading.readDataToEndOfFile()
-        p.waitUntilExit()
-        g.wait()
-        return (p.terminationStatus, String(decoding: outData, as: UTF8.self), String(decoding: errData, as: UTF8.self))
+        guard let r = ProcessRunner.run(exe, args, environment: env, timeout: 600) else {
+            return (-1, "", "could not run docker")
+        }
+        return (r.status, r.out, r.err)
     }
 
     func refresh() async {

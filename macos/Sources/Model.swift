@@ -112,9 +112,13 @@ final class Model: ObservableObject {
         return String(cString: r)
     }
 
+    /// Replaying the event log blocks until the system answers: do it on a dedicated thread. Parking a
+    /// dispatch-queue thread here could starve the queue the file event callback itself needs.
     private func detect(since id: UInt64, under paths: [String]) async -> ChangeResult {
         await withCheckedContinuation { cont in
-            DispatchQueue.global(qos: .utility).async { cont.resume(returning: FSChanges.changes(since: id, under: paths)) }
+            let t = Thread { cont.resume(returning: FSChanges.changes(since: id, under: paths)) }
+            t.stackSize = 1 << 20
+            t.start()
         }
     }
 
