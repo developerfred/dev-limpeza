@@ -36,6 +36,8 @@ final class Model: ObservableObject {
     @Published var items: [CacheItem] = []
     @Published var selection: Set<String> = []
     @Published var globalItems: [GlobalItem] = []
+    /// Git state of each project cache's project, filled in after a scan.
+    @Published var gitInfo: [String: GitInfo] = [:]
     @Published var globalSelection: Set<String> = []
     @Published var scanning = false
     @Published var scanningGlobal = false
@@ -183,6 +185,9 @@ final class Model: ObservableObject {
         items = found.sorted { $0.size > $1.size }
         selection = selection.intersection(Set(found.map(\.path)))
         lastScan = Date()
+        let paths = items.map(\.path)
+        gitInfo = gitInfo.filter { paths.contains($0.key) }
+        Task { await checkGit(paths, force: true) }
         if !uuid.isEmpty {
             store.save(ScopeCache(eventId: idBefore, volumeUUID: uuid, savedAt: Date(), devItems: items, globalItems: nil), for: "dev:" + root)
         }
@@ -258,7 +263,45 @@ final class Model: ObservableObject {
         }
     }
 
-    func selectStale() { selection = Set(staleItems.map(\.path)) }
+    /// Runs git on the projects of the given caches, a few at a time.
+    func checkGit(_ paths: [String], force: Bool = false) async {
+        let todo = paths.filter { force || gitInfo[$0] == nil }
+        var start = 0
+        while start < todo.count {
+            let chunk = Array(todo[start..<min(start + 6, todo.count)])
+            start += 6
+            await withTaskGroup(of: (String, GitInfo).self) { group in
+                for p in chunk {
+                    group.addTask { (p, await Task.detached(priority: .utility) { GitCheck.inspect(cachePath: p) }.value) }
+                }
+                for await (p, info) in group { gitInfo[p] = info }
+            }
+        }
+    }
+
+    /// Selects the idle caches whose projects show no sign of live work: nothing uncommitted, nothing unpushed,
+    /// and no versioned files inside the cache. Those are left for the user to choose on purpose.
+    func selectStale() async {
+        let stale = staleItems
+        await checkGit(stale.map(\.path))
+        selection = Set(stale.filter { !(gitInfo[$0.path]?.needsAttention ?? false) }.map(\.path))
+        let skipped = stale.count - selection.count
+        if skipped > 0 {
+            message = "Left out \(skipped) idle \(skipped == 1 ? "cache" : "caches") whose project has uncommitted or unpushed work"
+        }
+    }
+
+    var selectedGit: (dirty: Int, unpushed: Int, notRepo: Int, tracked: Int) {
+        var r = (dirty: 0, unpushed: 0, notRepo: 0, tracked: 0)
+        for i in items where selection.contains(i.path) {
+            guard let g = gitInfo[i.path] else { continue }
+            if g.dirty { r.dirty += 1 }
+            if g.unpushed != 0 { r.unpushed += 1 }
+            if g.state == .notRepo { r.notRepo += 1 }
+            if g.trackedInside { r.tracked += 1 }
+        }
+        return r
+    }
 
     /// Selects what is safe to remove: regenerated data, logs and tracking. Never history or "careful" items.
     func selectSafeGlobal() {
@@ -285,14 +328,21 @@ final class Model: ObservableObject {
     }
 
     private func removeAll(_ targets: [(path: String, size: UInt64)], allowed: Set<String>,
-                           requireCacheName: Bool, mode: RemoveMode) async -> (freed: UInt64, failed: Int) {
+                           requireCacheName: Bool, mode: RemoveMode) async -> (freed: UInt64, failed: Int, skipped: Int) {
         removing = true
         defer { removing = false }
         var freed: UInt64 = 0
         var failed = 0
+        var skipped = 0
         for (i, t) in targets.enumerated() {
             message = (mode == .permanent ? "Deleting " : "Moving ") + "\(i + 1)/\(targets.count)…"
             guard isSafe(t.path, allowed: allowed, requireCacheName: requireCacheName) else { failed += 1; continue }
+            // Project caches: look at git again right now (it may have changed since the scan). A folder
+            // that holds versioned files is never deleted permanently; the Trash can still restore it.
+            if requireCacheName && mode == .permanent {
+                let info = await Task.detached { GitCheck.inspect(cachePath: t.path) }.value
+                if info.trackedInside { skipped += 1; continue }
+            }
             let ok = await Task.detached(priority: .userInitiated) { () -> Bool in
                 do {
                     switch mode {
@@ -304,12 +354,13 @@ final class Model: ObservableObject {
             }.value
             if ok { freed += t.size } else { failed += 1 }
         }
-        return (freed, failed)
+        return (freed, failed, skipped)
     }
 
-    private func summary(_ r: (freed: UInt64, failed: Int), mode: RemoveMode) -> String {
+    private func summary(_ r: (freed: UInt64, failed: Int, skipped: Int), mode: RemoveMode) -> String {
         let verb = mode == .permanent ? "Deleted" : "Moved to the Trash:"
         return "\(verb) \(Model.format(r.freed))" + (r.failed > 0 ? " (\(r.failed) failed)" : "")
+            + (r.skipped > 0 ? ", kept \(r.skipped) that hold files tracked by git (use the Trash for those)" : "")
     }
 
     func removeSelected(_ mode: RemoveMode) async {

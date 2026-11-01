@@ -41,6 +41,10 @@ The app remembers the last result (`~/Library/Application Support/DevCacheClean/
 
 The "Rescan" button is incremental; its context menu has "Full rescan". The window shows which kind of scan ran. `./test-incremental.sh` checks that an incremental rescan equals a full scan after real changes (growing, creating, deleting caches).
 
+## Git check
+
+`GitCheck.swift` runs `git` read-only for the project that owns each cache (its parent folder): is it a work tree, does git track files inside the cache folder (`ls-files`, literal pathspec), is the folder dirty (`status --porcelain`, untracked files included), how many commits are not on the upstream (`rev-list --count @{u}..HEAD`, or `-1` when there is no upstream but there are commits). Every call passes `-c core.fsmonitor=false -c core.hooksPath=/dev/null`, runs with `GIT_OPTIONAL_LOCKS=0`, drops `GIT_DIR`-style variables and has a 20 s timeout; the system `/usr/bin/git` shim is only used when developer tools exist. `./test-git.sh` checks it against real repositories, including one whose config tries to run a program on `git status`.
+
 ## Safety rules
 
 1. Only items returned by a scan can be acted on.

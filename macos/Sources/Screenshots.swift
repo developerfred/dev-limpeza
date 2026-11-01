@@ -34,6 +34,13 @@ enum Screenshots {
             c("mobile-app/ios/Pods", "cocoapods", 420, 41), c("zig-tools/.zig-cache", "zig", 310, 5),
         ]
         m.selection = Set(m.items.prefix(3).map(\.path))
+        let projects = ["rust-api/target": GitInfo(state: .repo), "acme-web/node_modules": GitInfo(state: .repo),
+                        "ml-notebooks/.venv": GitInfo(state: .notRepo),
+                        "mobile-app/node_modules": GitInfo(state: .repo, dirty: true),
+                        "dashboard/node_modules": GitInfo(state: .repo, unpushed: 2),
+                        "acme-web/.next": GitInfo(state: .repo), "mobile-app/ios/Pods": GitInfo(state: .repo, dirty: true),
+                        "zig-tools/.zig-cache": GitInfo(state: .repo, trackedInside: true)]
+        for (k, v) in projects { m.gitInfo["~/projects/" + k] = v }
         func g(_ id: String, _ tool: String, _ name: String, _ path: String, _ d: String, _ loses: String,
                _ cat: String, _ risk: String, _ mb: Double) -> GlobalItem {
             GlobalItem(id: id, tool: tool, name: name, path: path, description: d, loses: loses,

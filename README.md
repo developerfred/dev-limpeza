@@ -47,6 +47,7 @@ Every entry has a category (`cache`, `build_output`, `logs`, `tracking`, `histor
 - Dev caches are moved to the **Trash** by default. You can restore them.
 - **Delete now** (next to Move to Trash) deletes permanently, skips the Trash and always asks for confirmation.
 - Docker cleanups are **permanent** and always ask first.
+- **Git check (project caches):** next to each cache you see what git says about its project: uncommitted changes, unpushed commits, "never pushed", "not in git", or **git-tracked files inside the cache folder**. "Select stale" leaves out caches whose project has uncommitted or unpushed work, so those are only removed if you pick them yourself. A folder that holds git-tracked files is never deleted permanently (the Trash can restore it). Git is run read-only with repository-configured programs (`core.fsmonitor`, hooks) switched off, so looking at a repository never executes its code. Your source code is never touched.
 - Only items returned by a scan can be acted on.
 - The app makes **no network requests**.
 

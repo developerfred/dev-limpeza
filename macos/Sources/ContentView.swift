@@ -58,9 +58,7 @@ struct ContentView: View {
                 Task { await model.removeSelected(mode) }
             }
         } message: { mode in
-            Text(mode == .permanent
-                 ? "This cannot be undone. Nothing goes to the Trash."
-                 : "You can restore them from the Trash. Space is freed when you empty the Trash.")
+            Text(confirmText(mode))
         }
     }
 
@@ -97,8 +95,11 @@ struct ContentView: View {
             )).labelsHidden()
             VStack(alignment: .leading, spacing: 1) {
                 Text(shortPath(item.path)).lineLimit(1).truncationMode(.head)
-                Text("\(item.label) · idle \(item.idle_days)d").font(.caption)
-                    .foregroundStyle(stale ? .orange : .secondary)
+                HStack(spacing: 6) {
+                    Text("\(item.label) · idle \(item.idle_days)d").font(.caption)
+                        .foregroundStyle(stale ? .orange : .secondary)
+                    gitChips(model.gitInfo[item.path])
+                }
             }
             Spacer()
             Text(Model.format(item.size)).monospacedDigit()
@@ -106,11 +107,50 @@ struct ContentView: View {
         .padding(.vertical, 2)
     }
 
+    private func confirmText(_ mode: RemoveMode) -> String {
+        var s = mode == .permanent
+            ? "This cannot be undone. Nothing goes to the Trash."
+            : "You can restore them from the Trash. Space is freed when you empty the Trash."
+        let g = model.selectedGit
+        var notes: [String] = []
+        if g.dirty > 0 { notes.append("\(g.dirty) with uncommitted changes") }
+        if g.unpushed > 0 { notes.append("\(g.unpushed) with unpushed commits") }
+        if g.notRepo > 0 { notes.append("\(g.notRepo) outside git") }
+        if !notes.isEmpty { s += " Includes " + notes.joined(separator: ", ") + ". Your source code is not touched." }
+        if g.tracked > 0 {
+            s += mode == .permanent
+                ? " \(g.tracked) hold files tracked by git and will be kept; use the Trash for those."
+                : " \(g.tracked) hold files tracked by git: git will show them as deleted."
+        }
+        return s
+    }
+
+    @ViewBuilder
+    private func gitChips(_ g: GitInfo?) -> some View {
+        if let g {
+            switch g.state {
+            case .notRepo: chip("not in git", .secondary)
+            case .unknown: chip("git unknown", .secondary)
+            case .repo:
+                if g.trackedInside { chip("git-tracked files inside", .red) }
+                if g.dirty { chip("uncommitted changes", .orange) }
+                if g.unpushed > 0 { chip("\(g.unpushed) unpushed", .orange) }
+                if g.unpushed < 0 { chip("never pushed", .orange) }
+                if !g.needsAttention { chip("git clean", .green) }
+            }
+        }
+    }
+
+    private func chip(_ text: String, _ color: Color) -> some View {
+        Text(text).font(.caption2).padding(.horizontal, 5).padding(.vertical, 1)
+            .background(color.opacity(0.15), in: Capsule()).foregroundStyle(color)
+    }
+
     private var footer: some View {
         VStack(alignment: .leading, spacing: 6) {
             if let m = model.message { Text(m).font(.caption).foregroundStyle(.secondary) }
             HStack {
-                Button("Select stale") { model.selectStale() }
+                Button("Select stale") { Task { await model.selectStale() } }
                 Button("Rescan") { Task { await model.scan() } }.disabled(model.scanning)
                     .contextMenu { Button("Full rescan") { Task { await model.scan(forceFull: true) } } }
                 Spacer()

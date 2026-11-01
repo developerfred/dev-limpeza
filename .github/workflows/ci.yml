@@ -24,6 +24,8 @@ jobs:
         run: ./make-app.sh
       - name: Incremental rescan equals full scan
         run: ./test-incremental.sh
+      - name: Git safety checks on real repositories
+        run: ./test-git.sh
 
   portable:
     name: Linux and Windows CLI
