@@ -2,7 +2,7 @@
 
 Dev Cache Clean is a free, open source (MIT) macOS app that finds development caches taking up disk space, shows what each one is, what you lose if you remove it and a risk level, and cleans them. The core is written in Zig and exposes a small C API; the interface is SwiftUI (a window, a Dock icon and a menu bar item). Repository: https://github.com/developerfred/dev-limpeza . Website: https://developerfred.github.io/dev-limpeza/
 
-Status: early (0.1). It has been checked against find and du on a real machine, but it is not notarized and has no installer. It runs on macOS only (macOS 15 or later).
+Status: early. It has been checked against find and du on a real machine, but it is not notarized, so macOS blocks the first launch (allow it in System Settings > Privacy & Security > Open Anyway). The app needs macOS 15 or later on Apple silicon; Linux and Windows have an experimental command line only.
 
 ## What it finds
 
@@ -28,7 +28,7 @@ Categories: cache (rebuilt automatically), build_output (rebuilt by the next bui
 
 ## How to install and build
 
-There is no installer. Requirements: macOS 15+, Xcode command line tools, Zig 0.17.
+Install with Homebrew: brew install --cask developerfred/tap/dev-cache-clean (use the full name; Homebrew 7 only loads casks from taps you trust). Or download the DMG from the GitHub releases page. To build from source the requirements are: macOS 15+, Xcode command line tools, Zig 0.17.
 
     git clone https://github.com/developerfred/dev-limpeza.git
     cd dev-limpeza
@@ -68,7 +68,7 @@ Measured on the author's ~/development (about 550 caches, 34 GB, Apple silicon):
 
 ## Limitations
 
-- Early (0.1), not notarized, no installer: build from source with Zig 0.17.
+- Early, not notarized: install with Homebrew or the DMG, or build from source with Zig 0.17.
 - macOS only (the scanner uses getattrlistbulk); macOS 15 or later.
 - Sizes are allocated bytes on disk. pnpm and Bun stores are hard-linked or cloned into projects, so freed space can be smaller than shown.
 - The catalog covers only the 40 locations and 7 project cache types listed above; other tools are not detected.

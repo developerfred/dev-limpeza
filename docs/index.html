@@ -63,7 +63,7 @@
     {
       "@type": "Question",
       "name": "What do I need to run it?",
-      "acceptedAnswer": { "@type": "Answer", "text": "macOS 15 or later, the Xcode command line tools and Zig 0.17. It is not notarized and has no installer yet, so you build it from source with ./make-app.sh." }
+      "acceptedAnswer": { "@type": "Answer", "text": "An Apple silicon Mac with macOS 15 or later. Install with Homebrew (brew install --cask developerfred/tap/dev-cache-clean) or download the DMG from the GitHub releases page. It is not notarized, so macOS blocks the first launch: allow it in System Settings, Privacy and Security, Open Anyway. To build from source you also need the Xcode command line tools and Zig 0.17." }
     }
   ]
 }
@@ -138,7 +138,7 @@ footer{border-top:1px solid var(--line);padding:1.5rem 0 2.5rem;color:var(--mute
         <a class="btn" href="#build">Build from source</a>
         <a class="btn alt" href="https://github.com/developerfred/dev-limpeza">View on GitHub</a>
       </p>
-      <p class="note">Early (0.1): macOS only, not notarized, no installer yet. Needs Zig 0.17 to build. MIT licensed.</p>
+      <p class="note">Early: macOS 15+ app (Apple silicon), not notarized. Experimental command line for Linux and Windows. MIT licensed.</p>
       <figure>
         <img src="img/dev-caches.png" width="1040" height="984" loading="lazy" alt="Dev Cache Clean window on the Dev caches tab, listing node_modules, target and other project caches with size and idle days, plus Select stale and Move to Trash buttons">
         <figcaption>Example data, not a real machine.</figcaption>
@@ -227,8 +227,10 @@ footer{border-top:1px solid var(--line);padding:1.5rem 0 2.5rem;color:var(--mute
     </section>
 
     <section id="build" aria-labelledby="build-h">
-      <h2 id="build-h">Build and run</h2>
-      <p>Requirements: macOS 15+, Xcode command line tools, <a href="https://ziglang.org/download/">Zig 0.17</a>. There is no installer and the app is not notarized, so you build it yourself.</p>
+      <h2 id="build-h">Install, or build it yourself</h2>
+      <p>With Homebrew (Apple silicon, macOS 15+), use the full name: Homebrew 7 only loads casks from taps you trust, and naming the cask is how you trust it.</p>
+<pre><code>brew install --cask developerfred/tap/dev-cache-clean</code></pre>
+      <p>The app is not notarized, so macOS blocks the first launch: allow it in System Settings, Privacy &amp; Security, <strong>Open Anyway</strong>. To build from source you need macOS 15+, the Xcode command line tools and <a href="https://ziglang.org/download/">Zig 0.17</a>:</p>
 <pre><code>git clone https://github.com/developerfred/dev-limpeza.git
 cd dev-limpeza
 ./make-app.sh &amp;&amp; open app/DevCacheClean.app   # window, Dock icon and menu bar item
@@ -259,7 +261,7 @@ zig-out/bin/dev-cache-clean docker</code></pre>
       </details>
       <details>
         <summary>What do I need to run it?</summary>
-        <p>macOS 15 or later, the Xcode command line tools and Zig 0.17. It is not notarized and has no installer yet, so you build it from source with <code>./make-app.sh</code>.</p>
+        <p>An Apple silicon Mac with macOS 15 or later. Install with Homebrew (<code>brew install --cask developerfred/tap/dev-cache-clean</code>) or download the DMG from the <a href="https://github.com/developerfred/dev-limpeza/releases">releases page</a>. It is not notarized, so macOS blocks the first launch: allow it in System Settings, Privacy and Security, Open Anyway. To build from source you also need the Xcode command line tools and Zig 0.17.</p>
       </details>
     </section>
   </div>

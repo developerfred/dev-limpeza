@@ -69,7 +69,13 @@ Rescans after the first one only re-measure what the macOS file event log says c
 
 ## Download
 
-Tagged releases are built by CI and listed on the [Releases](https://github.com/developerfred/dev-limpeza/releases) page: a macOS (Apple silicon) DMG and command-line tools for macOS, Linux and Windows. The window, menu bar, System and Docker tabs are **macOS only**; the Linux and Windows builds are an experimental command line (`scan`, `docker`). The macOS app is not notarized yet, see [docs/RELEASING.md](docs/RELEASING.md).
+With Homebrew (Apple silicon):
+
+```bash
+brew install --cask developerfred/tap/dev-cache-clean
+```
+
+Or download from the [Releases](https://github.com/developerfred/dev-limpeza/releases) page (built by CI): a macOS 15+ (Apple silicon) DMG and command-line tools for macOS, Linux and Windows. The window, menu bar, System and Docker tabs are **macOS only**; the Linux and Windows builds are an experimental command line (`scan`, `docker`). The macOS app is not notarized yet, so macOS blocks the first launch: allow it in System Settings > Privacy & Security > "Open Anyway". See [docs/RELEASING.md](docs/RELEASING.md).
 
 ## Build and run
 
