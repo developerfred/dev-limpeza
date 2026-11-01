@@ -15,6 +15,7 @@ jobs:
   macos:
     name: macOS app + tests
     runs-on: macos-15
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
       - uses: mlugg/setup-zig@v2
@@ -30,6 +31,7 @@ jobs:
   portable:
     name: Linux and Windows CLI
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
       - uses: mlugg/setup-zig@v2
@@ -58,6 +60,7 @@ jobs:
     name: Windows smoke test
     needs: portable
     runs-on: windows-latest
+    timeout-minutes: 20
     steps:
       - uses: actions/download-artifact@v4
         with:
