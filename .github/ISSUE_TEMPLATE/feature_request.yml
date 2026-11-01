@@ -1,0 +1,46 @@
+name: Feature request
+description: An idea to make the app more useful
+title: "[Idea] "
+labels: ["enhancement"]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: What problem are you trying to solve?
+      description: Start from what you were doing, not from the solution.
+    validations:
+      required: true
+  - type: textarea
+    id: idea
+    attributes:
+      label: What would you like to happen?
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: What have you tried instead?
+    validations:
+      required: false
+  - type: dropdown
+    id: platform
+    attributes:
+      label: Which platform matters to you?
+      options:
+        - macOS app
+        - macOS command line
+        - Linux command line
+        - Windows command line
+        - All of them
+    validations:
+      required: true
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Good to know
+      description: The app makes no network requests and always asks before removing anything, so ideas that need either will be discussed carefully.
+      options:
+        - label: I searched the existing issues
+          required: true
+        - label: I could help build this (optional)
+          required: false

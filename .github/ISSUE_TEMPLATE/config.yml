@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Security problem
+    url: https://github.com/developerfred/dev-limpeza/security/advisories/new
+    about: Report a vulnerability privately instead of opening a public issue.
+  - name: Read the docs first
+    url: https://developerfred.github.io/dev-limpeza/
+    about: What it finds, what is safe to remove and how releases work.

@@ -1,0 +1,82 @@
+name: Bug report
+description: Something does not work as described
+title: "[Bug] "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time. **If the app removed something it should not have, stop using "Delete now" first.** Items moved to the Trash can be restored from there.
+        Please blur or replace private folder and project names in anything you paste.
+  - type: dropdown
+    id: severity
+    attributes:
+      label: How bad is it?
+      options:
+        - Data loss (something was removed that should not have been)
+        - Wrong information (size, age or git status is wrong)
+        - Crash or hang
+        - Looks or reads wrong
+        - Other
+    validations:
+      required: true
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened?
+      description: What you did, what you expected and what you saw instead.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Open the Dev caches tab
+        2. ...
+    validations:
+      required: false
+  - type: dropdown
+    id: where
+    attributes:
+      label: Where did it happen?
+      options:
+        - Dev caches tab
+        - System tab
+        - Docker tab
+        - Menu bar or notifications
+        - Command line (macOS)
+        - Command line (Linux)
+        - Command line (Windows)
+        - Build or release
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Version
+      description: The release (for example 0.1.0) or the commit if you built it yourself.
+    validations:
+      required: true
+  - type: input
+    id: os
+    attributes:
+      label: macOS, Linux or Windows version and chip
+      placeholder: macOS 15.4, Apple silicon
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Output, screenshots or crash report
+      description: For a crash, attach the newest `DevCacheClean-*.ips` from `~/Library/Logs/DiagnosticReports`. Remove private paths first.
+      render: shell
+    validations:
+      required: false
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Before sending
+      options:
+        - label: I searched the existing issues
+          required: true

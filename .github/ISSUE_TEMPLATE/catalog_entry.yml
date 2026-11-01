@@ -1,0 +1,79 @@
+name: Catalog entry or wrong safety label
+description: Add a cache location, or tell us one is labelled wrongly
+title: "[Catalog] "
+labels: ["catalog"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        The catalog lists where tools keep caches, logs, tracking data and history (see [docs/CATALOG.md](https://github.com/developerfred/dev-limpeza/blob/main/docs/CATALOG.md)). Evidence matters more than guesses: a wrong "safe" label can cost someone their work.
+  - type: dropdown
+    id: kind
+    attributes:
+      label: What is this about?
+      options:
+        - A location that is missing
+        - An entry labelled safe that should be careful
+        - An entry whose "what you lose" text is wrong
+        - A path that is wrong or varies by version
+    validations:
+      required: true
+  - type: input
+    id: tool
+    attributes:
+      label: Tool and version
+      placeholder: Gradle 8.10
+    validations:
+      required: true
+  - type: textarea
+    id: paths
+    attributes:
+      label: Path or paths
+      description: Relative to your home folder, and note any environment variable that moves it (for example `CARGO_HOME`).
+      placeholder: ".gradle/caches"
+    validations:
+      required: true
+  - type: textarea
+    id: contains
+    attributes:
+      label: What is in it, and what is lost if it is removed?
+      description: Plain language. Can the tool rebuild it? Does it cost time, bandwidth, or work you cannot get back?
+    validations:
+      required: true
+  - type: dropdown
+    id: category
+    attributes:
+      label: Category you would pick
+      options:
+        - cache (rebuilt automatically)
+        - build output
+        - logs
+        - tracking (telemetry, analytics)
+        - history (conversations, sessions, saved work)
+    validations:
+      required: true
+  - type: dropdown
+    id: risk
+    attributes:
+      label: Risk you would pick
+      options:
+        - safe (regenerated on demand)
+        - careful (loses something you may want back)
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Evidence
+      description: A link to the tool's documentation or source, and a size from `du -sh <path>` if you have one.
+    validations:
+      required: true
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Before sending
+      options:
+        - label: This path holds no credentials, tokens or settings, only data the tool can rebuild or history
+          required: true
+        - label: I would be happy to open a pull request for it (optional, a short guide is in CONTRIBUTING.md)
+          required: false
