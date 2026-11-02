@@ -4,7 +4,6 @@ import AppKit
 struct ContentView: View {
     @ObservedObject var model: Model
     @ObservedObject var docker: DockerModel
-    @State private var pending: RemoveMode?
     @State private var tab: Int
 
     init(model: Model, docker: DockerModel, initialTab: Int = 0) {
@@ -46,20 +45,6 @@ struct ContentView: View {
         }
         .padding(14)
         .frame(width: 520)
-        .confirmationDialog(
-            pending == .permanent
-                ? "Permanently delete \(model.selection.count) caches (\(Model.format(model.selectedBytes)))?"
-                : "Move \(model.selection.count) caches (\(Model.format(model.selectedBytes))) to the Trash?",
-            isPresented: Binding(get: { pending != nil }, set: { if !$0 { pending = nil } }),
-            presenting: pending
-        ) { mode in
-            Button(mode == .permanent ? "Delete permanently" : "Move to Trash",
-                   role: mode == .permanent ? .destructive : nil) {
-                Task { await model.removeSelected(mode) }
-            }
-        } message: { mode in
-            Text(confirmText(mode))
-        }
     }
 
     private var header: some View {
@@ -105,6 +90,24 @@ struct ContentView: View {
             Text(Model.format(item.size)).monospacedDigit()
         }
         .padding(.vertical, 2)
+    }
+
+    private func confirmRemoval(_ mode: RemoveMode) {
+        let alert = NSAlert()
+        alert.alertStyle = mode == .permanent ? .critical : .warning
+        alert.messageText = mode == .permanent
+            ? "Permanently delete \(model.selection.count) caches (\(Model.format(model.selectedBytes)))?"
+            : "Move \(model.selection.count) caches (\(Model.format(model.selectedBytes))) to the Trash?"
+        alert.informativeText = confirmText(mode)
+        alert.addButton(withTitle: mode == .permanent ? "Delete permanently" : "Move to Trash")
+        alert.addButton(withTitle: "Cancel")
+        if mode == .permanent, let first = alert.buttons.first {
+            first.hasDestructiveAction = true
+        }
+        let response = alert.runModal()
+        if response == .alertFirstButtonReturn {
+            Task { await model.removeSelected(mode) }
+        }
     }
 
     private func confirmText(_ mode: RemoveMode) -> String {
@@ -154,9 +157,9 @@ struct ContentView: View {
                 Button("Rescan") { Task { await model.scan() } }.disabled(model.scanning)
                     .contextMenu { Button("Full rescan") { Task { await model.scan(forceFull: true) } } }
                 Spacer()
-                Button("Move to Trash (\(model.selection.count))") { pending = .trash }
+                Button("Move to Trash (\(model.selection.count))") { confirmRemoval(.trash) }
                     .disabled(model.selection.isEmpty || model.removing)
-                Button("Delete now…", role: .destructive) { pending = .permanent }
+                Button("Delete now…", role: .destructive) { confirmRemoval(.permanent) }
                     .disabled(model.selection.isEmpty || model.removing)
                 Button("Quit") { NSApplication.shared.terminate(nil) }
             }

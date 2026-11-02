@@ -3,7 +3,6 @@ import SwiftUI
 /// Global tool data from the catalog: AI agents, editors, package managers, Xcode.
 struct SystemView: View {
     @ObservedObject var model: Model
-    @State private var pending: RemoveMode?
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -30,26 +29,32 @@ struct SystemView: View {
                 Button("Rescan") { Task { await model.scanGlobal() } }.disabled(model.scanningGlobal)
                     .contextMenu { Button("Full rescan") { Task { await model.scanGlobal(forceFull: true) } } }
                 Spacer()
-                Button("Move to Trash (\(model.globalSelection.count))") { pending = .trash }
+                Button("Move to Trash (\(model.globalSelection.count))") { confirmRemoval(.trash) }
                     .disabled(model.globalSelection.isEmpty || model.removing)
-                Button("Delete now…", role: .destructive) { pending = .permanent }
+                Button("Delete now…", role: .destructive) { confirmRemoval(.permanent) }
                     .disabled(model.globalSelection.isEmpty || model.removing)
             }
-        }
-        .confirmationDialog(title, isPresented: Binding(get: { pending != nil }, set: { if !$0 { pending = nil } }),
-                            presenting: pending) { mode in
-            Button(mode == .permanent ? "Delete permanently" : "Move to Trash",
-                   role: mode == .permanent ? .destructive : nil) {
-                Task { await model.removeGlobalSelected(mode) }
-            }
-        } message: { mode in
-            Text(detail(mode))
         }
     }
 
-    private var title: String {
-        let n = model.globalSelection.count, size = Model.format(model.globalSelectedBytes)
-        return pending == .permanent ? "Permanently delete \(n) locations (\(size))?" : "Move \(n) locations (\(size)) to the Trash?"
+    private func confirmRemoval(_ mode: RemoveMode) {
+        let n = model.globalSelection.count
+        let size = Model.format(model.globalSelectedBytes)
+        let alert = NSAlert()
+        alert.alertStyle = mode == .permanent ? .critical : .warning
+        alert.messageText = mode == .permanent
+            ? "Permanently delete \(n) locations (\(size))?"
+            : "Move \(n) locations (\(size)) to the Trash?"
+        alert.informativeText = detail(mode)
+        alert.addButton(withTitle: mode == .permanent ? "Delete permanently" : "Move to Trash")
+        alert.addButton(withTitle: "Cancel")
+        if mode == .permanent, let first = alert.buttons.first {
+            first.hasDestructiveAction = true
+        }
+        let response = alert.runModal()
+        if response == .alertFirstButtonReturn {
+            Task { await model.removeGlobalSelected(mode) }
+        }
     }
 
     private func detail(_ mode: RemoveMode) -> String {

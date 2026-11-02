@@ -69,8 +69,22 @@ final class Model: ObservableObject {
     init() {
         let home = FileManager.default.homeDirectoryForCurrentUser.path
         let dev = home + "/development"
-        let defaultRoot = FileManager.default.fileExists(atPath: dev) ? dev : home
-        root = UserDefaults.standard.string(forKey: "root") ?? defaultRoot
+        let docs = home + "/Documents"
+        let defaultRoot: String
+        if FileManager.default.fileExists(atPath: dev) { defaultRoot = dev }
+        else if FileManager.default.fileExists(atPath: docs) { defaultRoot = docs }
+        else { defaultRoot = home }
+        let saved = UserDefaults.standard.string(forKey: "root")
+        if let saved, FileManager.default.fileExists(atPath: saved) {
+            var isDir: ObjCBool = false
+            if FileManager.default.fileExists(atPath: saved, isDirectory: &isDir), isDir.boolValue {
+                root = saved
+            } else {
+                root = defaultRoot
+            }
+        } else {
+            root = defaultRoot
+        }
         let d = UserDefaults.standard.integer(forKey: "staleDays")
         staleDays = d > 0 ? d : 30
     }
@@ -151,8 +165,21 @@ final class Model: ObservableObject {
 
     func scan(forceFull: Bool = false) async {
         guard !scanning, !removing else { return }
-        scanning = true
         message = nil
+        // If the remembered folder is no longer available (e.g. an external drive that is
+        // unplugged), fall back to a sensible default instead of failing the scan.
+        if !FileManager.default.fileExists(atPath: self.root) {
+            let home = FileManager.default.homeDirectoryForCurrentUser.path
+            let dev = home + "/development"
+            let docs = home + "/Documents"
+            let fallback: String
+            if FileManager.default.fileExists(atPath: dev) { fallback = dev }
+            else if FileManager.default.fileExists(atPath: docs) { fallback = docs }
+            else { fallback = home }
+            self.root = fallback
+            message = "Selected folder is unavailable; using \(fallback)"
+        }
+        scanning = true
         let root = self.root
         let started = Date()
         let idBefore = FSChanges.currentEventId()

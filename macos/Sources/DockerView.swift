@@ -2,7 +2,6 @@ import SwiftUI
 
 struct DockerView: View {
     @ObservedObject var docker: DockerModel
-    @State private var pending: DockerRow?
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -26,16 +25,19 @@ struct DockerView: View {
             if let m = docker.message { Text(m).font(.caption).foregroundStyle(.secondary) }
         }
         .task { if docker.state == .idle { await docker.refresh() } }
-        .confirmationDialog(
-            pending.map { "Clean \($0.title.lowercased()) (\($0.reclaimableText))?" } ?? "",
-            isPresented: Binding(get: { pending != nil }, set: { if !$0 { pending = nil } }),
-            presenting: pending
-        ) { row in
-            Button("Clean \(row.title.lowercased())", role: .destructive) {
-                Task { await docker.prune(row) }
-            }
-        } message: { row in
-            Text(row.warning)
+    }
+
+    private func confirmClean(_ row: DockerRow) {
+        let alert = NSAlert()
+        alert.alertStyle = .critical
+        alert.messageText = "Clean \(row.title.lowercased()) (\(row.reclaimableText))?"
+        alert.informativeText = row.warning
+        alert.addButton(withTitle: "Clean \(row.title.lowercased())")
+        alert.addButton(withTitle: "Cancel")
+        if let first = alert.buttons.first { first.hasDestructiveAction = true }
+        let response = alert.runModal()
+        if response == .alertFirstButtonReturn {
+            Task { await docker.prune(row) }
         }
     }
 
@@ -48,7 +50,7 @@ struct DockerView: View {
             }
             Spacer()
             Text(row.reclaimableText).monospacedDigit()
-            Button("Clean") { pending = row }
+            Button("Clean") { confirmClean(row) }
                 .disabled(row.reclaimableBytes == 0 || docker.busy)
         }
         .padding(.vertical, 2)
