@@ -87,6 +87,7 @@ final class Model: ObservableObject {
         }
         let d = UserDefaults.standard.integer(forKey: "staleDays")
         staleDays = d > 0 ? d : 30
+        UserDefaults.standard.set(root, forKey: "root")
     }
 
     var staleItems: [CacheItem] { items.filter { $0.idle_days >= staleDays } }
